@@ -16,7 +16,7 @@ metadata:
 spec:
   description: An argoCD project for local k8s gitops.
   sourceRepos:
-    - "https://github.com/hangx969/local-k8s-gitops.git"  # 修正为你的实际仓库
+    - "https://github.com/hangx969/local-k8s-gitops.git"
   destinations:
     - namespace: "*"
       server: https://kubernetes.default.svc
