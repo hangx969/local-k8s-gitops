@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: apps-git-directory
+  namespace: argocd
+  annotations:
+    description: "基于 Git 目录结构自动发现和部署应用"
+spec:
+  # 使用 Git Directory Generator 自动发现 apps/base/ 下的所有应用
+  generators:
+  - git:
+      repoURL: https://github.com/hangx969/local-k8s-gitops
+      revision: HEAD
+      directories:
+      - path: apps/base/*
+  
+  template:
+    metadata:
+      # 应用名称使用目录名称
+      name: '{{path.basename}}'
+      # 可选：添加标签用于分类和筛选
+      labels:
+        managed-by: applicationset
+        environment: base
+    spec:
+      # 关联到 AppProject
+      project: default-project
+      
+      # 源配置
+      source:
+        repoURL: https://github.com/hangx969/local-k8s-gitops
+        targetRevision: HEAD
+        path: '{{path}}'
+      
+      # 目标配置
+      destination:
+        server: https://kubernetes.default.svc
+        # 部署到与应用同名的命名空间
+        namespace: '{{path.basename}}'
+      
+      # 同步策略
+      syncPolicy:
+        # 可选：启用自动同步
+        # automated:
+        #   prune: true      # 自动删除不在 Git 中的资源
+        #   selfHeal: true   # 自动修复偏差
+        
+        # 同步选项
+        syncOptions:
+          - CreateNamespace=true  # 自动创建命名空间
