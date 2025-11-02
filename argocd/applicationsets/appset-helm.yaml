@@ -1,0 +1,155 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: appset-helm
+  labels:
+    deployment: helm
+  annotations:
+    # 同步波次：控制 ArgoCD 同步顺序，数字越小越先执行。0 表示默认优先级，业务应用通常使用默认值或正数
+    argocd.argoproj.io/sync-wave: "0"
+
+spec:
+  goTemplate: true  # 启用 Go 模板语法（推荐，功能更强大）
+  goTemplateOptions: ["missingkey=error"]  # 严格模式：如果模板变量缺失则报错，避免静默失败
+  generators:
+    - matrix:
+        generators:
+          # --------------------------------------------------
+          # 生成器 1：Git 文件生成器
+          # --------------------------------------------------
+          # 作用：扫描 Git 仓库中的特定路径，找到所有 config.yaml 文件
+          # 每个 config.yaml 代表一个需要部署的 Helm chart
+          - git:
+              repoURL: https://github.com/hangx969/local-k8s-gitops.git
+              revision: main  # Git 分支
+              files:
+                # * 通配符会匹配所有子目录
+                # 关键：使用 ** 才能读取文件内容作为变量
+                - path: helm-charts/*/config.yaml
+
+          # --------------------------------------------------
+          # 生成器 2：集群列表生成器
+          # --------------------------------------------------
+          # 作用：定义要部署到的集群列表
+          # 这样可以将同一个应用部署到多个集群
+          - list:
+              elements:
+                - cluster: local-cluster  # 本地集群
+                  url: https://kubernetes.default.svc
+
+  # ============================================================
+  # 应用模板（Template）
+  # ============================================================
+  # 这个模板会被应用到生成器产生的每个元素上
+  # 例如：上面定义了 3 个环境，会生成 3 个 Application
+  template:
+    metadata:
+      # 应用名称：使用集群名和子目录名称组合
+      # 生成的应用名称示例：
+      #   - in-cluster-nfs-provisioner
+      #   - in-cluster-istio
+      name: "{{ .cluster }}-{{ .path[1] }}"
+      labels:
+        app: "{{ .path[1] }}"  # 应用标识
+        cluster: "{{ .cluster }}"  # 集群标识
+
+      annotations:
+        # 从 config.yaml 中读取 syncWave 配置
+        argocd.argoproj.io/sync-wave: "{{ .app.syncWave }}"
+
+      # 终结器（Finalizer）
+      # 作用：确保删除 Application 时会先删除所有部署的资源
+      # 防止孤立资源残留在集群中
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+
+    spec:
+      # 引用之前定义的 AppProject，继承其权限和限制
+      # 确保应用只能访问项目允许的仓库和集群
+      project: appprj-default
+      # 定义应用的来源：从哪里获取 Kubernetes 资源定义
+      source:
+        # Git 仓库 URL
+        repoURL: "https://github.com/hangx969/local-k8s-gitops.git"
+        # 目标版本：可以是分支名、标签或 commit SHA
+        # HEAD 表示跟踪默认分支（通常是 main 或 master）的最新提交
+        targetRevision: HEAD
+        # Helm Chart 所在路径
+        # 动态路径：helm-charts/{子目录名}/charts
+        path: "helm-charts/{{.path[1]}}/charts"
+
+        # --------------------------------------------------
+        # Helm 配置
+        # --------------------------------------------------
+        helm:
+          # Helm Release 名称。如果不指定，默认使用 Application 名称
+          releaseName: "{{ .app.releaseName }}"
+          # 值文件（Values Files）加载顺序
+          # 后面的文件会覆盖前面的配置
+          valueFiles:
+            - "values.yaml"         # 1. 默认值文件（所有环境通用）
+            - "values.dev.yaml"   # 2. 环境特定值文件（如 dev.yaml, prod.yaml）
+          # 如果指定的 values 文件不存在，不报错
+          ignoreMissingValueFiles: true
+      # 定义应用部署到哪个集群的哪个命名空间
+      destination:
+        server: "{{ .url }}"
+        namespace: "{{ .app.namespace }}"
+      # 定义如何将 Git 中的配置同步到集群
+      syncPolicy:
+        # 自动同步配置
+        automated:
+          # 自动修剪：删除 Git 中不存在的资源
+          prune: true
+          # 自动自愈：当资源在集群中被修改时，自动恢复到 Git 状态
+          selfHeal: true
+          # 允许清空：允许删除所有资源
+          allowEmpty: false
+
+        # 同步选项
+        syncOptions:
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=true # 仅应用不同步的资源：只更新有变化的资源，减少不必要的操作
+          - Validate=true
+          - PrunePropagationPolicy=foreground # 资源删除策略：前台删除（等待依赖资源先删除）
+        # 重试策略：同步失败时的重试配置
+        retry:
+          # 最大重试次数
+          limit: 5
+          # 退避策略
+          backoff:
+            # 初始重试间隔
+            duration: 5s
+            # 最大重试间隔
+            maxDuration: 3m
+            # 重试间隔增长因子
+            factor: 2
+
+      # --------------------------------------------------
+      # 忽略差异配置（可选）
+      # --------------------------------------------------
+      # 某些字段在集群中可能被其他控制器修改，忽略这些差异
+      # ignoreDifferences:
+      #   - group: apps
+      #     kind: Deployment
+      #     jsonPointers:
+      #       - /spec/replicas  # 忽略副本数差异（例如 HPA 修改）
+
+  # ============================================================
+  # 模板补丁（Template Patch）- 可选
+  # ============================================================
+  # 针对特定应用添加额外配置（条件性补丁）
+  templatePatch: |
+    # 如果是 Istio 应用，添加特殊配置
+    {{ if eq .path[1] "istio" }}
+      spec:
+        # 忽略差异配置：告诉 ArgoCD 忽略某些字段的差异
+        # Istio 的 ValidatingWebhookConfiguration 会被 Istio 自己修改
+        # 我们不希望 ArgoCD 认为这是"不同步"状态
+        ignoreDifferences:
+          - group: admissionregistration.k8s.io
+            kind: ValidatingWebhookConfiguration
+            name: 'istio-validator-{{ .app.version }}-istio-system'
+            jsonPointers:
+              - /webhooks/0/failurePolicy  # 忽略这个字段的变化
+    {{- end }}

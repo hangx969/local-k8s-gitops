@@ -1,54 +1,73 @@
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
-  name: default-project
+  name: appprj-default
   namespace: argocd
-  # 可选：添加注释说明项目用途
   annotations:
-    description: "默认应用项目，用于演示和测试"
+    # 同步波次：控制 ArgoCD 同步顺序，数字越小越先执行
+    # "1" 表示此项目会在第一波被创建，确保项目在应用之前就绪
+    argocd.argoproj.io/sync-wave: "1"
+
+  # 终结器（Finalizer）：防止项目被意外删除
+  # 确保在删除项目之前，所有引用此项目的应用都已被删除
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+
 spec:
-  description: Default Application Project for general applications
-  
-  # 允许的源仓库
-  # ⚠️ 安全警告：以下配置仅用于开发/测试环境
-  # 生产环境必须明确指定允许的仓库地址，避免未授权代码部署
+  description: An argoCD project for local k8s gitops.
   sourceRepos:
-    - 'https://github.com/hangx969/local-k8s-gitops'
-    # 生产环境请删除以下通配符配置，改为具体的仓库地址
-    - 'https://*'  # ⚠️ 仅用于测试！生产环境请删除此行
-  
-  # 允许部署的目标集群和命名空间
+    - "https://github.com/hangx969/local-k8s-gitops.git"  # 修正为你的实际仓库
   destinations:
-    # 允许部署到所有命名空间
-    - namespace: '*'
-      server: 'https://kubernetes.default.svc'
-  
-  # 集群级别资源白名单
-  # ⚠️ 安全警告：以下配置允许所有资源类型，仅用于开发/测试
-  # 生产环境应该遵循最小权限原则，仅允许必要的资源类型
+    - namespace: "*"
+      server: https://kubernetes.default.svc
+
+  # 说明：定义允许创建哪些集群级别的资源（非命名空间资源）
+  # 默认情况下会拒绝所有集群范围资源，除非在此列出
+  # 集群资源包括：Namespace、ClusterRole、ClusterRoleBinding、CRD 等
   clusterResourceWhitelist:
-    - group: '*'
-      kind: '*'
-    # 生产环境示例（取消注释并删除上面的通配符）：
-    # - group: ''
-    #   kind: Namespace
-    # - group: rbac.authorization.k8s.io
-    #   kind: ClusterRole
-  
-  # 命名空间级别资源白名单
-  # ⚠️ 安全警告：以下配置允许所有资源类型，仅用于开发/测试
-  # 生产环境应该遵循最小权限原则，仅允许必要的资源类型
-  namespaceResourceWhitelist:
-    - group: '*'
-      kind: '*'
-    # 生产环境示例（取消注释并删除上面的通配符）：
-    # - group: ''
-    #   kind: Service
-    # - group: ''
-    #   kind: ConfigMap
-    # - group: apps
-    #   kind: Deployment
-  
-  # 可选：孤立资源策略（删除应用时的行为）
+    - group: '*'  # 允许所有 API 组的资源
+      kind: '*'   # 允许所有资源类型
+
+  # 说明：启用对命名空间中孤立资源的监控
+  # 孤立资源是指存在于集群中但不在 Git 仓库中定义的资源
+  # 这有助于发现手动创建或遗留的资源
   orphanedResources:
-    warn: true
+    warn: true  # 启用警告模式：发现孤立资源时会显示警告，但不会自动删除
+
+  # 说明：控制应用是否只能部署到此项目范围内的集群
+  # false：允许应用部署到 destinations 字段指定的任何集群
+  # true：限制应用只能部署到显式绑定到此项目的集群（更严格的安全控制）
+  permitOnlyProjectScopedClusters: false
+
+  # 说明：定义项目级别的 RBAC 权限，控制谁可以访问此项目
+  # roles:
+  #   # 定义一个只读角色
+  #   - name: read-only
+  #     description: Read-only privileges to the demo project
+  #     policies:
+  #       - p, proj:demo:read-only, applications, get, demo/*, allow
+  #     groups:
+  #       - demo-viewers
+  #   # 定义一个管理员角色
+  #   - name: admin
+  #     description: Admin privileges to the demo project
+  #     policies:
+  #       - p, proj:demo:admin, applications, *, demo/*, allow
+  #     groups:
+  #       - demo-admins
+
+  # 说明：定义允许或禁止同步的时间窗口，用于变更管理
+  # syncWindows:
+  #   # 定义一个允许同步的时间窗口
+  #   - kind: allow
+  #     schedule: '0 9 * * 1-5'  # Cron 表达式：工作日早上9点
+  #     duration: 8h             # 持续8小时
+  #     applications:
+  #       - '*'                  # 应用于所有应用
+  #     manualSync: true         # 允许手动同步
+  #   # 定义一个禁止同步的时间窗口（例如：生产环境变更冻结期）
+  #   - kind: deny
+  #     schedule: '0 0 * * 0,6'  # Cron 表达式：周末
+  #     duration: 24h
+  #     applications:
+  #       - '*'

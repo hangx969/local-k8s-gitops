@@ -1,0 +1,6 @@
+app:
+  syncWave: "-20"
+  revision: main
+  releaseName: nfs-provisioner
+  version: 4.0.18
+  namespace: nfs-system

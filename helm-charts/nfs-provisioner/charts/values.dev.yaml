@@ -1,0 +1,28 @@
+replicaCount: 1
+
+nfs:
+  server: 172.16.35.120
+  path: /data/nfs_pro/
+
+# For creating the StorageClass automatically:
+storageClass:
+  create: true
+
+  # Set a provisioner name. If unset, a name will be generated.
+  # provisionerName:
+
+  # Set StorageClass as the default StorageClass
+  # Ignored if storageClass.create is false
+  defaultClass: true
+
+  # Set a StorageClass name
+  # Ignored if storageClass.create is false
+  name: sc-nfs
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
