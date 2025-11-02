@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: appset-helm
+  name: appset-helm-demo
   namespace: argocd
   labels:
     deployment: helm
@@ -49,9 +49,9 @@ spec:
       # 生成的应用名称示例：
       #   - in-cluster-nfs-provisioner
       #   - in-cluster-istio
-      name: "{{ .cluster }}-{{ .path[1] }}"
+      name: "{{ .cluster }}-{{ index .path.segments 1 }}"
       labels:
-        app: "{{ .path[1] }}"  # 应用标识
+        app: "{{ index .path.segments 1 }}"  # 应用标识
         cluster: "{{ .cluster }}"  # 集群标识
 
       annotations:
@@ -77,7 +77,7 @@ spec:
         targetRevision: HEAD
         # Helm Chart 所在路径
         # 动态路径：helm-charts/{子目录名}/charts
-        path: "helm-charts/{{.path[1]}}/charts"
+        path: "helm-charts/{{ index .path.segments 1 }}/charts"
 
         # --------------------------------------------------
         # Helm 配置
@@ -142,7 +142,7 @@ spec:
   # 针对特定应用添加额外配置（条件性补丁）
   templatePatch: |
     # 如果是 Istio 应用，添加特殊配置
-    {{ if eq .path[1] "istio" }}
+    {{ if eq (index .path.segments 1) "istio" }}
       spec:
         # 忽略差异配置：告诉 ArgoCD 忽略某些字段的差异
         # Istio 的 ValidatingWebhookConfiguration 会被 Istio 自己修改
