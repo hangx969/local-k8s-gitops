@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: default-project
+  namespace: argocd
+  # 可选：添加注释说明项目用途
+  annotations:
+    description: "默认应用项目，用于演示和测试"
+spec:
+  description: Default Application Project for general applications
+  
+  # 允许的源仓库
+  # 将此仓库地址替换为您自己的仓库
+  sourceRepos:
+    - 'https://github.com/hangx969/local-k8s-gitops'
+    - 'https://*'  # 允许所有 HTTPS 仓库（生产环境建议具体指定）
+  
+  # 允许部署的目标集群和命名空间
+  destinations:
+    # 允许部署到所有命名空间
+    - namespace: '*'
+      server: 'https://kubernetes.default.svc'
+  
+  # 集群级别资源白名单
+  # 生产环境建议限制具体的资源类型
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  
+  # 命名空间级别资源白名单
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  
+  # 可选：孤立资源策略（删除应用时的行为）
+  orphanedResources:
+    warn: true
