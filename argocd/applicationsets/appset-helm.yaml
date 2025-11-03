@@ -142,7 +142,7 @@ spec:
   # 针对特定应用添加额外配置（条件性补丁）
   templatePatch: |
     # 如果是 Istio 应用，添加特殊配置
-    {{ if eq (index .path.segments 1) "istio" }}
+    {{ if eq (index .path.segments 1) "istiod" }}
       spec:
         # 忽略差异配置：告诉 ArgoCD 忽略某些字段的差异
         # Istio 的 ValidatingWebhookConfiguration 会被 Istio 自己修改

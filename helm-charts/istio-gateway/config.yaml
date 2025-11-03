@@ -1,0 +1,6 @@
+app:
+  syncWave: "-20"
+  revision: main
+  releaseName: gateway
+  version: 1.27.1
+  namespace: istio-system

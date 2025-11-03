@@ -1,0 +1,38 @@
+_internal_defaults_do_not_set:
+
+  service:
+    type: NodePort
+    ports:
+    - name: status-port
+      port: 15020
+      protocol: TCP
+      targetPort: 15020
+      nodePort: 30520
+    - name: http2
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+      nodePort: 30080
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: 8443
+      nodePort: 30443
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 2000m
+      memory: 1024Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: {}
+    autoscaleBehavior: {}
+
+  imagePullPolicy: "IfNotPresent"

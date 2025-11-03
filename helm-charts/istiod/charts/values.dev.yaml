@@ -1,0 +1,26 @@
+# "_internal_defaults_do_not_set" is a workaround for Helm limitations. Users should NOT set "._internal_defaults_do_not_set" explicitly, but rather directly set the fields internally.
+# For instance, instead of `--set _internal_defaults_do_not_set.foo=bar``, just set `--set foo=bar`.
+_internal_defaults_do_not_set:
+
+  meshConfig:
+    enablePrometheusMerge: true
+    accessLogEncoding: JSON
+    accessLogFile: /dev/stdout
+
+  global:
+    # A minimal set of requested resources to applied to all deployments so that
+    # Horizontal Pod Autoscaler will be able to function (if set).
+    # Each component can overwrite these default values by adding its own resources
+    # block in the relevant section below and setting the desired resources values.
+    defaultResources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      # limits:
+      #   cpu: 100m
+      #   memory: 128Mi
+    # Default hub for Istio images.
+    # Releases are published to docker hub under 'istio' project.
+    # Dev builds from prow are on gcr.io
+    hub: m.daocloud.io/docker.io/istio
+    imagePullPolicy: "IfNotPresent"
