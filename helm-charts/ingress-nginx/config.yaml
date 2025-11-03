@@ -1,0 +1,6 @@
+app:
+  syncWave: "-20"
+  revision: main
+  releaseName: ingress-nginx
+  version: 4.13.0
+  namespace: ingress-nginx

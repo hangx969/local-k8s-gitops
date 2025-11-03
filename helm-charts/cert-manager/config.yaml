@@ -1,0 +1,6 @@
+app:
+  syncWave: "-20"
+  revision: main
+  releaseName: cert-manager
+  version: 4.13.0
+  namespace: cert-manager
