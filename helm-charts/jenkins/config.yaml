@@ -1,0 +1,6 @@
+app:
+  syncWave: "-20"
+  revision: main
+  releaseName: jenkins
+  version: 5.68.0
+  namespace: jenkins

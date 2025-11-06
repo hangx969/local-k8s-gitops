@@ -1,0 +1,84 @@
+controller:
+  admin:
+    username: "admin"
+    password: "admin"
+
+  containerSecurityContext:
+    runAsUser: 0
+    runAsGroup: 0
+    readOnlyRootFilesystem: false
+    allowPrivilegeEscalation: true
+  runAsUser: 0
+  runAsGroup: 0
+
+  ingress:
+    enabled: true
+    ingressClassName: nginx-default
+    path: /
+    hostName: jenkins.hanxux.local
+
+  volumes:
+  - name: local-time
+    hostPath:
+      path: /etc/localtime
+  mounts:
+  - mountPath: /etc/localtime
+    name: local-time
+
+  prometheus:
+    enabled: false
+
+  installPlugins: false
+    # - kubernetes:4358.vcfd9c5a_0a_f51
+    # - workflow-aggregator:608.v67378e9d3db_1
+    # - git:5.7.0
+    # - configuration-as-code:1985.vdda_32d0c4ea_b_
+
+  # installLatestPlugins: true
+  # installLatestSpecifiedPlugins: true
+
+  probes:
+    startupProbe:
+      timeoutSeconds: 60
+
+agent:
+  enabled: true
+  namespace: "jenkins"
+  privileged: true
+  podName: "jnlp"
+  command: ""
+  args: ""
+
+  volumes:
+  - type: HostPath
+    hostPath: /var/run/docker.sock
+    mountPath: /var/run/docker.sock
+  - type: HostPath
+    hostPath: /root/.kube
+    mountPath: /home/jenkins/.kube
+  - type: HostPath
+    hostPath: /usr/bin/docker
+    mountPath: /usr/bin/docker
+  - type: HostPath
+    hostPath: /usr/bin/kubectl
+    mountPath: /usr/bin/kubectl
+  - type: HostPath
+    hostPath: /etc/docker/daemon.json
+    mountPath: /etc/docker/daemon.json
+
+  TTYEnabled: true
+  containerCap: 10
+
+  # Enables garbage collection of orphan pods for this Kubernetes cloud. (beta)
+  garbageCollection:
+    # -- When enabled, Jenkins will periodically check for orphan pods that have not been touched for the given timeout period and delete them.
+    enabled: true
+    # -- Namespaces to look at for garbage collection, in addition to the default namespace defined for the cloud. One namespace per line.
+    namespaces: "jenkins"
+
+  serviceAccount: jenkins
+
+persistence:
+  enabled: true
+  storageClass: "sc-nfs"
+  size: "5Gi"
