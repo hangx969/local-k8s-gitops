@@ -2,5 +2,5 @@ app:
   syncWave: "-20"
   revision: main
   releaseName: jenkins
-  version: 5.68.0
+  version: 5.8.68
   namespace: jenkins
