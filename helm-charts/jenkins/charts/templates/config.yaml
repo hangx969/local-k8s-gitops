@@ -69,7 +69,7 @@ data:
 {{- end }}
 {{- range $key, $val := .Values.controller.JCasC.configScripts }}
   {{ $key }}.yaml: |-
-{{ tpl $val $| indent 4 }}
+{{ tpl $val $ | indent 4 }}
 {{- end }}
 {{- end }}
   plugins.txt: |-
