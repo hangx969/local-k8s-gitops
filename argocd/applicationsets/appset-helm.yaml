@@ -18,15 +18,16 @@ spec:
           # --------------------------------------------------
           # 生成器 1：Git 文件生成器
           # --------------------------------------------------
-          # 作用：扫描 Git 仓库中的特定路径，找到所有 config.yaml 文件
-          # 每个 config.yaml 代表一个需要部署的 Helm chart
+          # 作用：扫描 Git 仓库中的特定路径，找到所有 app-config.yaml 文件
+          # 每个 app-config.yaml 代表一个需要部署的 Helm chart
+          # 注意：使用 app-config.yaml 而非 config.yaml，避免与 Helm templates 中的 config.yaml 冲突
           - git:
               repoURL: https://github.com/hangx969/local-k8s-gitops.git
               revision: main  # Git 分支
               files:
                 # * 通配符会匹配所有子目录
                 # 关键：使用 ** 才能读取文件内容作为变量
-                - path: helm-charts/*/config.yaml
+                - path: helm-charts/*/app-config.yaml
 
           # --------------------------------------------------
           # 生成器 2：集群列表生成器
