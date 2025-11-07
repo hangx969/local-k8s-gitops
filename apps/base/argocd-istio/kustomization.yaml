@@ -1,0 +1,10 @@
+# ArgoCD Istio Resources Base Kustomization
+# 管理 ArgoCD 的 Istio Gateway 和 VirtualService
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: argocd
+
+resources:
+  - argo-gateway.yaml
+  - argo-vs.yaml
