@@ -6,29 +6,34 @@
 
 ```
 local-k8s-gitops/
-├── charts/                    # 自定义 Helm Charts
-│   ├── app-name/
-│   │   ├── Chart.yaml
-│   │   ├── values.yaml
-│   │   └── templates/
-│   └── README.md
+├── helm-charts/               # Helm Charts 目录
+│   ├── cert-manager/          # Cert-Manager Helm Chart
+│   │   ├── app-config.yaml   # ArgoCD 应用配置
+│   │   └── charts/           # Helm Chart 文件
+│   ├── ingress-nginx/         # Ingress Nginx Helm Chart
+│   ├── istio-base/            # Istio 基础组件
+│   ├── istio-gateway/         # Istio Gateway
+│   ├── istiod/                # Istio 控制平面
+│   ├── jenkins/               # Jenkins CI/CD
+│   └── nfs-provisioner/       # NFS 存储提供者
 │
-├── apps/                      # 应用配置文件
+├── apps/                      # Kustomize 应用配置
 │   ├── base/                  # 基础配置（环境无关）
-│   │   └── app-name/
+│   │   ├── bookinfo/          # Bookinfo 示例应用
+│   │   ├── istio-addons/      # Istio 可观测性组件
+│   │   └── argocd-istio/      # ArgoCD Istio 集成
 │   ├── overlays/              # 环境特定配置
-│   │   ├── dev/               # 开发环境
-│   │   ├── staging/           # 预发布环境
-│   │   └── prod/              # 生产环境
+│   │   ├── bookinfo/
+│   │   ├── istio-addons/
+│   │   └── argocd-istio/
 │   └── README.md
 │
 ├── argocd/                    # ArgoCD 配置
 │   ├── projects/              # AppProject 定义
-│   │   ├── project-name.yaml
-│   │   └── README.md
+│   │   └── default-project.yaml
 │   ├── applicationsets/       # ApplicationSet 定义
-│   │   ├── appset-name.yaml
-│   │   └── README.md
+│   │   ├── appset-helm.yaml       # Helm Chart 应用集
+│   │   └── appset-kustomize.yaml  # Kustomize 应用集
 │   └── README.md
 │
 └── README.md
@@ -36,23 +41,29 @@ local-k8s-gitops/
 
 ## 目录说明
 
-### 📦 charts/
-存放自定义的 Helm Charts，用于打包和部署 Kubernetes 应用。
+### 📦 helm-charts/
+存放 Helm Charts 配置，每个子目录代表一个应用。
 
-**使用场景：**
-- 需要自定义的应用配置
-- 需要版本化管理的应用
-- 可复用的应用模板
+**目录结构：**
+- `app-config.yaml` - ArgoCD 应用配置（包含 syncWave、namespace、版本等元数据）
+- `charts/` - Helm Chart 文件（Chart.yaml、values.yaml、templates/）
 
-详细说明请查看 [charts/README.md](./charts/README.md)
+**已部署应用：**
+- **cert-manager** - 自动化 TLS 证书管理
+- **ingress-nginx** - Kubernetes Ingress 控制器
+- **istio-base** - Istio 基础 CRD 和配置
+- **istio-gateway** - Istio Ingress/Egress Gateway
+- **istiod** - Istio 控制平面
+- **jenkins** - CI/CD 平台
+- **nfs-provisioner** - NFS 动态存储提供者
 
 ### 🚀 apps/
-存放应用的配置文件，支持 Kustomize 或纯 YAML 方式。
+存放基于 Kustomize 的应用配置。
 
-**使用场景：**
-- 使用第三方 Helm Charts 时的 values 文件
-- Kustomize 配置
-- 环境特定的配置覆盖
+**已部署应用：**
+- **bookinfo** - Istio 官方示例应用（微服务架构演示）
+- **istio-addons** - Istio 可观测性组件（Grafana、Jaeger、Kiali、Prometheus）
+- **argocd-istio** - ArgoCD 的 Istio Gateway 和 VirtualService 配置
 
 详细说明请查看 [apps/README.md](./apps/README.md)
 
@@ -60,68 +71,147 @@ local-k8s-gitops/
 存放 ArgoCD 的核心配置资源。
 
 **projects/** - AppProject 资源定义
-- 用于对 Applications 进行逻辑分组
-- 配置访问权限和部署策略
-- 详细说明请查看 [argocd/projects/README.md](./argocd/projects/README.md)
+- `default-project.yaml` - 默认项目配置，管理所有应用的权限和部署策略
 
 **applicationsets/** - ApplicationSet 资源定义
-- 自动化生成和管理多个 Applications
-- 支持多集群、多环境部署
-- 详细说明请查看 [argocd/applicationsets/README.md](./argocd/applicationsets/README.md)
+- `appset-helm.yaml` - 自动管理所有 Helm Chart 应用
+- `appset-kustomize.yaml` - 自动管理所有 Kustomize 应用
 
 ## 快速开始
 
-### 1. 添加自定义 Helm Chart
+### 1. 添加 Helm Chart 应用
 
 ```bash
-cd charts
+# 创建应用目录
+mkdir -p helm-charts/my-app/charts
+
+# 创建 app-config.yaml
+cat > helm-charts/my-app/app-config.yaml <<EOF
+app:
+  syncWave: "0"
+  revision: main
+  releaseName: my-app
+  version: 1.0.0
+  namespace: my-app
+EOF
+
+# 创建或复制 Helm Chart 到 charts/ 目录
+cd helm-charts/my-app/charts
 helm create my-app
-# 编辑 Chart.yaml 和 values.yaml
+# 或者复制现有的 Helm Chart
 ```
 
-### 2. 添加应用配置
+### 2. 添加 Kustomize 应用
 
 ```bash
-# 创建基础配置
+# 创建 base 配置
 mkdir -p apps/base/my-app
+cd apps/base/my-app
+# 创建 Kubernetes 资源文件和 kustomization.yaml
 
-# 创建环境特定配置
-mkdir -p apps/overlays/prod/my-app
+# 创建 overlay 配置
+mkdir -p apps/overlays/my-app
+cat > apps/overlays/my-app/kustomization.yaml <<EOF
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base/my-app
+EOF
 ```
 
-### 3. 创建 ArgoCD AppProject
+### 3. 部署到集群
 
 ```bash
-# 在 argocd/projects/ 目录创建 YAML 文件
-kubectl apply -f argocd/projects/my-project.yaml
-```
+# 提交到 Git 仓库
+git add .
+git commit -m "Add my-app"
+git push
 
-### 4. 创建 ArgoCD ApplicationSet
-
-```bash
-# 在 argocd/applicationsets/ 目录创建 YAML 文件
-kubectl apply -f argocd/applicationsets/my-appset.yaml
+# ArgoCD 会自动检测并部署应用
+# 查看部署状态
+kubectl --kubeconfig=<your-kubeconfig> get application -n argocd
 ```
 
 ## GitOps 工作流
 
 1. **提交代码** - 将配置更改推送到 Git 仓库
-2. **ArgoCD 同步** - ArgoCD 检测到更改并自动同步
-3. **部署应用** - 应用被部署到 Kubernetes 集群
-4. **监控状态** - 通过 ArgoCD UI 监控部署状态
+2. **ArgoCD 检测** - ApplicationSet 自动扫描 Git 仓库，发现新应用或配置变更
+3. **自动同步** - ArgoCD 自动将变更同步到 Kubernetes 集群
+4. **健康检查** - 持续监控应用健康状态
+5. **自动修复** - 如果集群中的资源被手动修改，ArgoCD 会自动恢复到 Git 中定义的状态
+
+## 核心特性
+
+### 🔄 ApplicationSet 自动化
+- **Helm Charts**: `appset-helm.yaml` 自动扫描 `helm-charts/*/app-config.yaml`
+- **Kustomize Apps**: `appset-kustomize.yaml` 自动扫描 `apps/overlays/*`
+- 新增应用无需手动创建 Application，只需按规范创建目录结构
+
+### 🎯 同步波次控制
+通过 `syncWave` 注解控制应用部署顺序：
+- `-20`: Istio 基础组件（istio-base）
+- `-10`: Istio 控制平面（istiod）
+- `0`: 其他基础设施和应用
+
+### 🛡️ 忽略差异配置
+针对 Istio Webhook 等动态资源配置 `ignoreDifferences`，避免误报 OutOfSync 状态
+
+### 🔐 自动命名空间创建
+配置了 `CreateNamespace=true`，应用部署时自动创建所需的命名空间
 
 ## 最佳实践
 
-- ✅ 使用有意义的命名约定
-- ✅ 为不同环境使用 overlays
-- ✅ 在 AppProject 中限制权限范围
-- ✅ 使用 ApplicationSet 自动化管理
-- ✅ 保持配置文件简洁可读
-- ✅ 添加适当的注释和文档
+### Helm Charts
+- ✅ 在 `app-config.yaml` 中定义应用元数据（syncWave、namespace、version）
+- ✅ 使用 `values.yaml` 作为默认配置
+- ✅ 使用 `values.dev.yaml` 等文件进行环境特定配置
+- ✅ 合理设置 syncWave 确保依赖顺序正确
+
+### Kustomize 应用
+- ✅ Base 层保持通用性，包含完整的资源定义
+- ✅ Overlay 层通过引用 base 实现复用
+- ✅ 使用 patches 进行环境特定修改
+- ✅ 保持目录结构清晰
+
+### ArgoCD 配置
+- ✅ 使用 ApplicationSet 实现应用自动发现和管理
+- ✅ 配置 `ignoreDifferences` 处理动态资源
+- ✅ 使用 `automated.prune` 和 `selfHeal` 保持集群状态一致
+- ✅ 合理使用 AppProject 管理权限
+
+### Git 工作流
+- ✅ 使用有意义的提交信息
+- ✅ 配置变更前先本地验证（kubectl apply --dry-run）
+- ✅ 保持配置文件简洁可读，添加适当的注释
 
 ## 相关资源
 
 - [Helm 官方文档](https://helm.sh/docs/)
 - [ArgoCD 官方文档](https://argo-cd.readthedocs.io/)
 - [Kustomize 官方文档](https://kustomize.io/)
+- [Istio 官方文档](https://istio.io/latest/docs/)
 - [GitOps 最佳实践](https://www.gitops.tech/)
+
+## 常见问题
+
+### 如何查看应用状态？
+```bash
+kubectl --kubeconfig=<your-kubeconfig> get application -n argocd
+```
+
+### 如何手动触发同步？
+```bash
+# 通过 kubectl
+kubectl --kubeconfig=<your-kubeconfig> patch application <app-name> -n argocd \
+  --type merge -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{}}}'
+
+# 或通过 ArgoCD UI 点击 SYNC 按钮
+```
+
+### 应用显示 OutOfSync 怎么办？
+1. 检查 Git 仓库和集群中的资源差异
+2. 确认是否配置了 `ignoreDifferences`（针对动态资源）
+3. 查看 ArgoCD Application 详情了解具体差异
+
+### 如何调整应用部署顺序？
+修改 `app-config.yaml` 中的 `syncWave` 值，数字越小越先部署
