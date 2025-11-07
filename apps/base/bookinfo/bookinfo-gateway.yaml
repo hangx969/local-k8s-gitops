@@ -1,0 +1,16 @@
+apiVersion: networking.istio.io/v1 
+kind: Gateway 
+metadata: 
+  name: bookinfo-gateway 
+spec:
+  # The selector matches the ingress gateway pod labels.
+  # If you installed Istio using Helm following the standard documentation, this would be "istio=ingress"
+  selector: 
+    istio: gateway # 匹配的是ingressgateway pod的label 
+  servers: 
+  - port: 
+      number: 80 
+      name: http 
+      protocol: HTTP 
+    hosts: 
+    - "bookinfo.hanxux.local" # 发布域名

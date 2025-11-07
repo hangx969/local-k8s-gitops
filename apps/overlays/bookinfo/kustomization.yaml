@@ -1,0 +1,40 @@
+# Bookinfo Overlay Kustomization
+# 引用 base 配置并覆写镜像源
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# 引用基础配置
+resources:
+  - ../../base/bookinfo
+
+# 镜像覆盖 - 使用 DaoCloud 镜像源
+images:
+  # details-v1
+  - name: docker.io/istio/examples-bookinfo-details-v1
+    newName: m.daocloud.io/docker.io/istio/examples-bookinfo-details-v1
+    newTag: "1.20.3"
+
+  # ratings-v1
+  - name: docker.io/istio/examples-bookinfo-ratings-v1
+    newName: m.daocloud.io/docker.io/istio/examples-bookinfo-ratings-v1
+    newTag: "1.20.3"
+
+  # reviews-v1
+  - name: docker.io/istio/examples-bookinfo-reviews-v1
+    newName: m.daocloud.io/docker.io/istio/examples-bookinfo-reviews-v1
+    newTag: "1.20.3"
+
+  # reviews-v2
+  - name: docker.io/istio/examples-bookinfo-reviews-v2
+    newName: m.daocloud.io/docker.io/istio/examples-bookinfo-reviews-v2
+    newTag: "1.20.3"
+
+  # reviews-v3
+  - name: docker.io/istio/examples-bookinfo-reviews-v3
+    newName: m.daocloud.io/docker.io/istio/examples-bookinfo-reviews-v3
+    newTag: "1.20.3"
+
+  # productpage-v1
+  - name: docker.io/istio/examples-bookinfo-productpage-v1
+    newName: m.daocloud.io/docker.io/istio/examples-bookinfo-productpage-v1
+    newTag: "1.20.3"

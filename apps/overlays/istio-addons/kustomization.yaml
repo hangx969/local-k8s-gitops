@@ -1,0 +1,63 @@
+# Istio Addons Overlay Kustomization
+# 引用 base 配置并应用必要的补丁
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# 引用基础配置
+resources:
+  - ../../base/istio-addons
+
+# 镜像覆盖
+images:
+  # Jaeger - 使用 DaoCloud 镜像
+  - name: docker.io/jaegertracing/all-in-one
+    newName: m.daocloud.io/docker.io/jaegertracing/all-in-one
+    newTag: "1.70.0"
+
+  # Grafana - 使用 DaoCloud 镜像
+  - name: docker.io/grafana/grafana
+    newName: m.daocloud.io/docker.io/grafana/grafana
+    newTag: "11.3.1"
+
+  # Prometheus - 使用 DaoCloud 镜像
+  - name: prom/prometheus
+    newName: m.daocloud.io/docker.io/prom/prometheus
+    newTag: "v3.4.2"
+    
+# Service 补丁
+patches:
+  # Jaeger - tracing Service 改为 NodePort
+  - target:
+      kind: Service
+      name: tracing
+    patch: |-
+      - op: replace
+        path: /spec/type
+        value: NodePort
+
+  # Kiali - kiali Service 改为 NodePort
+  - target:
+      kind: Service
+      name: kiali
+    patch: |-
+      - op: replace
+        path: /spec/type
+        value: NodePort
+
+  # Grafana - grafana Service 改为 NodePort
+  - target:
+      kind: Service
+      name: grafana
+    patch: |-
+      - op: replace
+        path: /spec/type
+        value: NodePort
+
+  # Prometheus - prometheus Service 改为 NodePort
+  - target:
+      kind: Service
+      name: prometheus
+    patch: |-
+      - op: replace
+        path: /spec/type
+        value: NodePort

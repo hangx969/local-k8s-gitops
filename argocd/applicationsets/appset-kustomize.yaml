@@ -1,0 +1,79 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: appset-kustomize-apps
+  namespace: argocd
+  labels:
+    deployment: kustomize
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"  # 在 Helm charts 之后部署
+
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+
+  generators:
+    # --------------------------------------------------
+    # Git 目录生成器
+    # --------------------------------------------------
+    # 扫描 apps/overlays 下的所有子目录
+    # 每个子目录代表一个要部署的应用
+    - git:
+        repoURL: https://github.com/hangx969/local-k8s-gitops.git
+        revision: main
+        directories:
+          # 匹配 apps/overlays 下的所有子目录
+          - path: apps/overlays/*
+
+  # ============================================================
+  # 应用模板
+  # ============================================================
+  template:
+    metadata:
+      # 应用名称：从路径中提取应用名
+      # 例如：apps/overlays/kiali -> kiali
+      name: "{{ index .path.segments 2 }}"
+
+      labels:
+        app: "{{ index .path.segments 2 }}"
+        deployment-type: kustomize
+
+      annotations:
+        argocd.argoproj.io/sync-wave: "10"
+
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+
+    spec:
+      project: appprj-default
+
+      source:
+        repoURL: https://github.com/hangx969/local-k8s-gitops.git
+        targetRevision: HEAD
+        # Kustomize 应用的路径
+        # 例如：apps/overlays/kiali
+        path: "{{ .path.path }}"
+
+      destination:
+        server: https://kubernetes.default.svc
+        # 不指定 namespace，让 Kustomize 配置文件自己管理
+        # 每个应用的 base/kustomization.yaml 中定义 namespace
+
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+
+        syncOptions:
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=true
+          - Validate=true
+          - PrunePropagationPolicy=foreground
+
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            maxDuration: 3m
+            factor: 2

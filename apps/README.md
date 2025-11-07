@@ -1,76 +1,128 @@
-# Applications
+# Kustomize 应用目录
 
-本目录用于存放应用的配置文件，采用 Kustomize 或纯 YAML 的方式组织。
+本目录用于存放基于 Kustomize 的 Kubernetes 应用配置，通过 ArgoCD ApplicationSet 自动部署。
 
-## 目录结构
+## 📁 目录结构
 
 ```
 apps/
-├── base/                 # 基础配置（环境无关）
-│   ├── app-1/
-│   │   ├── deployment.yaml
-│   │   ├── service.yaml
-│   │   └── kustomization.yaml
-│   └── app-2/
-│       └── ...
-├── overlays/             # 环境特定配置
-│   ├── dev/              # 开发环境
-│   │   ├── app-1/
-│   │   │   ├── kustomization.yaml
-│   │   │   └── values-override.yaml
-│   │   └── app-2/
-│   │       └── ...
-│   ├── staging/          # 预发布环境
-│   │   └── ...
-│   └── prod/             # 生产环境
-│       └── ...
-└── README.md
+├── README.md                          # 本文档
+├── base/                              # 基础配置目录
+│   ├── kiali/                        # Kiali 应用基础配置
+│   │   ├── namespace.yaml           # 命名空间定义
+│   │   ├── deployment.yaml          # Deployment 配置
+│   │   ├── service.yaml             # Service 配置
+│   │   ├── configmap.yaml           # ConfigMap 配置
+│   │   └── kustomization.yaml       # Kustomize 资源清单
+│   └── jaeger/                       # Jaeger 应用基础配置
+│       ├── namespace.yaml
+│       ├── deployment.yaml
+│       ├── service.yaml
+│       ├── configmap.yaml
+│       └── kustomization.yaml
+└── overlays/                          # 应用特定配置目录
+    ├── kiali/
+    │   ├── kustomization.yaml        # 引用 base 并应用补丁
+    │   └── deployment-patch.yaml     # Deployment 补丁文件
+    └── jaeger/
+        ├── kustomization.yaml
+        └── deployment-patch.yaml
 ```
 
-## 使用场景
+## 🎯 设计理念
 
-本目录适合以下场景：
+### Base 层（基础配置）
+- **作用**：定义应用的通用配置，适用于所有环境
+- **内容**：标准的 Kubernetes 资源清单（Deployment、Service、ConfigMap 等）
+- **原则**：保持通用性，不包含环境特定的配置
 
-1. **使用第三方 Helm Charts**
-   - base/ 目录存放 values.yaml
-   - overlays/ 存放环境特定的 values 覆盖
+### Overlays 层（应用配置）
+- **作用**：在 base 基础上应用特定的配置
+- **内容**：通过 Kustomize 的 patches 机制修改或扩展 base 配置
+- **示例**：修改副本数、调整资源限制、添加环境变量、修改镜像标签
 
-2. **使用 Kustomize**
-   - base/ 目录存放基础 manifests
-   - overlays/ 存放环境特定的补丁和配置
+## 🚀 如何添加新应用
 
-3. **纯 YAML 部署**
-   - 直接存放 Kubernetes YAML 文件
+### 1. 创建 Base 配置
 
-## 使用说明
+```bash
+# 创建应用目录
+mkdir -p apps/base/<app-name>
 
-### Kustomize 方式
+# 创建基础资源文件
+cd apps/base/<app-name>
+touch namespace.yaml deployment.yaml service.yaml kustomization.yaml
+```
 
-1. **查看渲染后的配置**
-   ```bash
-   kubectl kustomize apps/overlays/dev/app-1
-   ```
-
-2. **应用配置**
-   ```bash
-   kubectl apply -k apps/overlays/dev/app-1
-   ```
-
-### Helm Values 方式
-
-将 values 文件与 ArgoCD Application 配合使用：
+**kustomization.yaml 示例**：
 ```yaml
-spec:
-  source:
-    helm:
-      valueFiles:
-        - ../../apps/base/app-1/values.yaml
-        - ../../apps/overlays/prod/app-1/values-override.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: <app-name>
+resources:
+  - namespace.yaml
+  - deployment.yaml
+  - service.yaml
+commonLabels:
+  app: <app-name>
+  managed-by: argocd
 ```
 
-## 最佳实践
+### 2. 创建 Overlay 配置
 
-- 将环境无关的配置放在 base/
-- 环境特定的配置放在对应的 overlays/
-- 使用有意义的应用名称
-- 保持配置文件的简洁和可读性
+```bash
+mkdir -p apps/overlays/<app-name>
+cd apps/overlays/<app-name>
+touch kustomization.yaml
+```
+
+**kustomization.yaml 示例**：
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base/<app-name>
+namespace: <app-name>
+commonLabels:
+  cluster: in-cluster
+replicas:
+  - name: <app-name>
+    count: 1
+```
+
+### 3. ArgoCD 自动发现
+配置完成后，ArgoCD ApplicationSet (`argocd/applicationsets/appset-kustomize.yaml`) 会自动扫描 `apps/overlays/` 目录并创建 Application。
+
+## 🔧 本地验证
+
+```bash
+# 验证 base 配置
+kustomize build apps/base/kiali
+
+# 验证 overlay 配置
+kustomize build apps/overlays/kiali
+
+# 查看最终生成的 YAML
+kustomize build apps/overlays/kiali | kubectl apply --dry-run=client -f -
+```
+
+## 📦 已部署应用
+
+| 应用名称 | 命名空间 | 描述 |
+|---------|---------|------|
+| kiali   | kiali   | Istio 服务网格可视化工具 |
+| jaeger  | jaeger  | 分布式追踪系统 |
+
+## 🔗 ArgoCD 集成
+
+### 查看部署状态
+```bash
+# 查看所有 Kustomize 应用
+argocd app list -l deployment-type=kustomize
+
+# 查看特定应用
+argocd app get kiali
+
+# 手动同步
+argocd app sync kiali
+```
