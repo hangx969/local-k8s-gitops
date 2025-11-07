@@ -151,7 +151,24 @@ spec:
         ignoreDifferences:
           - group: admissionregistration.k8s.io
             kind: ValidatingWebhookConfiguration
-            name: 'istio-validator-{{ .app.version }}-istio-system'
+            name: istio-validator-istio-system
             jsonPointers:
               - /webhooks/0/failurePolicy  # 忽略这个字段的变化
+          - group: admissionregistration.k8s.io
+            kind: MutatingWebhookConfiguration
+            name: istio-sidecar-injector
+            jqPathExpressions:
+              - '.webhooks[]?.clientConfig.caBundle'  # 忽略 CA bundle 的变化
+              - '.webhooks[]?.failurePolicy'  # 忽略失败策略的变化
+    {{- end }}
+    {{ if eq (index .path.segments 1) "istio-base" }}
+      spec:
+        # istio-base 的 ValidatingWebhookConfiguration 也会被 Istio 修改
+        ignoreDifferences:
+          - group: admissionregistration.k8s.io
+            kind: ValidatingWebhookConfiguration
+            name: istiod-default-validator
+            jqPathExpressions:
+              - '.webhooks[]?.clientConfig.caBundle'  # 忽略 CA bundle 的变化
+              - '.webhooks[]?.failurePolicy'  # 忽略失败策略的变化
     {{- end }}
