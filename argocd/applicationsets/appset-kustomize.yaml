@@ -54,6 +54,54 @@ spec:
         # 例如：apps/overlays/kiali
         path: "{{ .path.path }}"
 
+        # ============================================
+        # 添加：Kustomize 配置
+        # ============================================
+        kustomize:
+          version: v5.4.2
+
+          # 命名空间：强制所有资源使用指定的命名空间
+          # 注释：由于 base kustomization.yaml 已定义 namespace，这里注释掉
+          # 如果需要覆盖 base 中的 namespace，可以取消注释
+          # namespace: "{{ index .path.segments 2 }}"
+
+          # 名称前缀：为所有资源添加前缀（可选）
+          # 好处：避免命名冲突，支持同一应用的多个实例
+          # namePrefix: ""
+
+          # 名称后缀：为所有资源添加后缀（可选）
+          # nameSuffix: ""
+
+          # 通用标签：为所有资源添加通用标签
+          # 好处：便于统一管理和查询
+          commonLabels:
+            app.kubernetes.io/managed-by: argocd
+            app.kubernetes.io/name: "{{ index .path.segments 2 }}"
+
+          # 镜像：支持镜像替换（如果需要全局镜像替换）
+          # 注意：当前应用已在 overlay 中定义镜像覆盖，这里保持为空
+          # images: []
+
+          # 补丁：应用额外的 patches（如果需要）
+          # patches: []
+
+          # 副本数：覆盖所有 Deployment/StatefulSet 的副本数（可选）
+          # 注意：仅在需要统一管理副本数时启用
+          # replicas:
+          #   - name: "*"
+          #     count: 1
+
+          # 构建选项
+          buildOptions:
+            # 启用 Helm chart 解析（如果 Kustomize 引用了 Helm charts）
+            # enableHelm: false
+
+            # 启用 alpha 插件（如果需要）
+            # enableAlphaPlugins: false
+
+            # 加载限制：防止过大的 Kustomize 资源
+            # loadRestrictor: LoadRestrictionsRootOnly  # 仅允许从根目录加载
+
       destination:
         server: https://kubernetes.default.svc
         # 不指定 namespace，让 Kustomize 配置文件自己管理
@@ -67,13 +115,76 @@ spec:
 
         syncOptions:
           - CreateNamespace=true
+          # 只更新不同步的资源，跳过已同步的资源
           - ApplyOutOfSyncOnly=true
+          # 在应用资源前进行客户端验证 kubectl validate
           - Validate=true
+          # 先删除依赖资源，最后删除父资源
           - PrunePropagationPolicy=foreground
-
+          # 尊重 ignoreDifferences 配置，不将被忽略的字段标记为 OutOfSync
+          - RespectIgnoreDifferences=true
+          # 在所有创建/更新操作完成后，最后才执行删除操作
+          - PruneLast=true
+          # 添加：服务器端应用（推荐用于大型资源）
+          # 注意事项：首次启用 ServerSideApply 可能需要强制同步 argocd app sync istio-addons --force
+          - ServerSideApply=true
         retry:
           limit: 5
           backoff:
             duration: 5s
             maxDuration: 3m
             factor: 2
+
+      # ============================================
+      # 添加：忽略差异配置
+      # ============================================
+      # 某些字段在集群中可能被其他控制器修改，忽略这些差异
+      # ignoreDifferences:
+      #   # 示例：忽略 HPA 修改的副本数
+      #   - group: apps
+      #     kind: Deployment
+      #     jsonPointers:
+      #       - /spec/replicas
+      #   # 示例：忽略 Istio sidecar 注入
+      #   - group: apps
+      #     kind: Deployment
+      #     jqPathExpressions:
+      #       - '.spec.template.metadata.annotations."sidecar.istio.io/status"'
+
+      # ============================================
+      # 添加：健康检查配置
+      # ============================================
+      # 定义资源健康检查逻辑
+      # revisionHistoryLimit: 10  # 保留历史版本数量
+
+  # ============================================
+  # 添加：模板补丁（针对特定应用）
+  # ============================================
+  # 针对特定应用添加额外配置
+  # templatePatch: |
+  #   # 如果是 istio-addons 应用，添加特殊配置
+  #   {{- if eq (index .path.segments 2) "istio-addons" }}
+  #   spec:
+  #     # Istio 相关资源可能会被 Istio 控制器修改
+  #     # 忽略这些差异，避免不必要的同步
+  #     ignoreDifferences:
+  #       # 忽略 Service 的 NodePort 字段（Kubernetes 自动分配）
+  #       # 原因：NodePort 类型的 Service，Kubernetes 会自动为每个端口分配 nodePort 值
+  #       # 如果 Git 中未指定，会导致持续 OutOfSync 和无限同步循环
+  #       # 使用 jqPathExpressions 动态匹配所有端口，无需硬编码索引
+  #       - group: ""
+  #         kind: Service
+  #         jqPathExpressions:
+  #           - '.spec.ports[]?.nodePort'
+  #   {{- end }}
+
+  #   # 如果是 argocd-istio 应用
+  #   {{- if eq (index .path.segments 2) "argocd-istio" }}
+  #   spec:
+  #     # ArgoCD Istio Gateway 配置
+  #     ignoreDifferences:
+  #       - group: networking.istio.io
+  #         kind: Gateway
+  #         jqPathExpressions:
+  #           - '.metadata.annotations."kubectl.kubernetes.io/last-applied-configuration"'
+  #   {{- end }}
