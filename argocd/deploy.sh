@@ -1,0 +1,275 @@
+#!/usr/bin/env bash
+# ============================================================
+# ArgoCD GitOps One-Click Deployment Script
+# ============================================================
+# Purpose:
+#   1. Create a declarative Secret so ArgoCD auto-discovers the Git repo
+#   2. Deploy AppProject and ApplicationSet resources in the correct order
+#
+# Deployment order:
+#   Secret (repo credentials) → AppProject (project definition) → ApplicationSets
+#
+# Usage:
+#   chmod +x deploy.sh
+#   ./deploy.sh                        # Public repo (no credentials needed)
+#   ./deploy.sh -u <user> -p <PAT>     # Private repo (GitHub PAT required)
+#
+# Prerequisites:
+#   - kubectl is configured and connected to the target cluster
+#   - ArgoCD is installed in the "argocd" namespace
+# ============================================================
+
+set -euo pipefail
+
+# ====================== Configuration ======================
+
+# Git repository URL
+REPO_URL="https://github.com/hangx969/local-k8s-gitops.git"
+
+# ArgoCD namespace
+ARGOCD_NS="argocd"
+
+# Secret name for the repository
+REPO_SECRET_NAME="repo-local-k8s-gitops"
+
+# Directory where this script is located (used to locate YAML files)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Credential variables (only needed for private repos)
+GH_USERNAME=""
+GH_PASSWORD=""
+
+# ====================== Helper Functions ======================
+
+# Print timestamped log messages
+log_info() {
+  echo "[INFO]  $(date '+%Y-%m-%d %H:%M:%S') $*"
+}
+
+log_warn() {
+  echo "[WARN]  $(date '+%Y-%m-%d %H:%M:%S') $*"
+}
+
+log_error() {
+  echo "[ERROR] $(date '+%Y-%m-%d %H:%M:%S') $*" >&2
+}
+
+# Check if a command is available
+check_command() {
+  if ! command -v "$1" &>/dev/null; then
+    log_error "Command not found: $1. Please install it first."
+    exit 1
+  fi
+}
+
+# Wait for a Kubernetes resource to become ready
+wait_for_resource() {
+  local resource_type="$1"
+  local resource_name="$2"
+  local namespace="$3"
+  local timeout="${4:-60}"
+
+  log_info "Waiting for ${resource_type}/${resource_name} to be ready (timeout: ${timeout}s)..."
+  if kubectl -n "${namespace}" wait "${resource_type}/${resource_name}" \
+    --for=jsonpath='{.metadata.name}'="${resource_name}" \
+    --timeout="${timeout}s" 2>/dev/null; then
+    log_info "${resource_type}/${resource_name} is ready."
+  else
+    log_warn "${resource_type}/${resource_name} wait timed out, continuing..."
+  fi
+}
+
+# Display usage information
+usage() {
+  cat <<EOF
+Usage: $0 [OPTIONS]
+
+Options:
+  -u, --username <username>    GitHub username (required for private repos)
+  -p, --password <PAT>         GitHub Personal Access Token (required for private repos)
+  -h, --help                   Show this help message
+
+Examples:
+  $0                           # Public repo, no credentials needed
+  $0 -u myuser -p ghp_xxx     # Private repo, using HTTPS credentials
+EOF
+  exit 0
+}
+
+# ====================== Argument Parsing ======================
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -u|--username)
+      GH_USERNAME="$2"
+      shift 2
+      ;;
+    -p|--password)
+      GH_PASSWORD="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      ;;
+    *)
+      log_error "Unknown argument: $1"
+      usage
+      ;;
+  esac
+done
+
+# ====================== Pre-flight Checks ======================
+
+log_info "========== Running pre-flight checks =========="
+
+# Verify required commands are available
+check_command kubectl
+
+# Verify kubectl can connect to the cluster
+if ! kubectl cluster-info &>/dev/null; then
+  log_error "Cannot connect to the Kubernetes cluster. Please check your kubeconfig."
+  exit 1
+fi
+log_info "Kubernetes cluster connection verified."
+
+# Verify the argocd namespace exists
+if ! kubectl get namespace "${ARGOCD_NS}" &>/dev/null; then
+  log_error "Namespace '${ARGOCD_NS}' does not exist. Please install ArgoCD first."
+  exit 1
+fi
+log_info "ArgoCD namespace '${ARGOCD_NS}' exists."
+
+# Verify all required YAML files are present
+for f in \
+  "${SCRIPT_DIR}/projects/default-project.yaml" \
+  "${SCRIPT_DIR}/applicationsets/appset-helm.yaml" \
+  "${SCRIPT_DIR}/applicationsets/appset-kustomize.yaml"; do
+  if [[ ! -f "$f" ]]; then
+    log_error "File not found: $f"
+    exit 1
+  fi
+done
+log_info "All required YAML files found."
+
+# ============================================================
+# Step 1: Create Declarative Secret (Repository Configuration)
+# ============================================================
+# ArgoCD auto-discovers Git repositories by detecting Secrets
+# with the label: argocd.argoproj.io/secret-type: repository
+# This eliminates the need to manually add repos via the UI.
+# ============================================================
+
+log_info "========== Step 1/3: Creating repository Secret =========="
+
+# Use kubectl to create the Secret directly
+# --from-literal fields:
+#   - type=git   → Repository type is Git
+#   - url        → Repository HTTPS URL
+SECRET_ARGS=(
+  kubectl create secret generic "${REPO_SECRET_NAME}"
+  -n "${ARGOCD_NS}"
+  --from-literal=type=git
+  --from-literal=url="${REPO_URL}"
+  --dry-run=client -o yaml
+)
+
+# If credentials were provided, append them to the Secret
+if [[ -n "${GH_USERNAME}" && -n "${GH_PASSWORD}" ]]; then
+  log_info "Credentials detected. Creating Secret with authentication info."
+  SECRET_ARGS+=(
+    --from-literal=username="${GH_USERNAME}"
+    --from-literal=password="${GH_PASSWORD}"
+  )
+else
+  log_info "No credentials provided. Creating Secret for public repo access."
+fi
+
+# Generate YAML via dry-run, add the ArgoCD label, then apply
+"${SECRET_ARGS[@]}" \
+  | kubectl label --local -f - \
+      argocd.argoproj.io/secret-type=repository \
+      --dry-run=client -o yaml \
+  | kubectl apply -f -
+log_info "Repository Secret '${REPO_SECRET_NAME}' created/updated successfully."
+
+# Wait for the Secret to be created
+wait_for_resource "secret" "${REPO_SECRET_NAME}" "${ARGOCD_NS}" 30
+
+# ============================================================
+# Step 2: Create AppProject
+# ============================================================
+# The AppProject defines:
+#   - Allowed Git source repositories (sourceRepos)
+#   - Allowed deployment targets: clusters and namespaces (destinations)
+#   - Allowed cluster-scoped resources (clusterResourceWhitelist)
+# It must be created BEFORE ApplicationSets, because the Applications
+# generated by ApplicationSets reference this project.
+# ============================================================
+
+log_info "========== Step 2/3: Creating AppProject =========="
+
+kubectl apply -f "${SCRIPT_DIR}/projects/default-project.yaml"
+log_info "AppProject 'appprj-default' created/updated successfully."
+
+# Wait for the AppProject to be ready
+wait_for_resource "appproject" "appprj-default" "${ARGOCD_NS}" 30
+
+# ============================================================
+# Step 3: Create ApplicationSets
+# ============================================================
+# ApplicationSets use generators to auto-discover and create Applications:
+#   - appset-helm: Scans helm-charts/*/app-config.yaml and generates
+#                  one Application per Helm chart
+#   - appset-kustomize: Scans apps/overlays/* directories and generates
+#                       one Application per Kustomize overlay
+#
+# Deployment order is controlled by syncWave:
+#   - Helm apps (syncWave: -20) → Infrastructure components deploy first
+#   - Kustomize apps (syncWave: 10) → Business applications deploy after
+# ============================================================
+
+log_info "========== Step 3/3: Creating ApplicationSets =========="
+
+# Deploy the Helm ApplicationSet first (infrastructure components, lower syncWave = higher priority)
+log_info "Deploying Helm ApplicationSet (infrastructure components)..."
+kubectl apply -f "${SCRIPT_DIR}/applicationsets/appset-helm.yaml"
+log_info "Helm ApplicationSet 'appset-helm-demo' created/updated successfully."
+
+# Deploy the Kustomize ApplicationSet (business applications, depends on infrastructure)
+log_info "Deploying Kustomize ApplicationSet (business applications)..."
+kubectl apply -f "${SCRIPT_DIR}/applicationsets/appset-kustomize.yaml"
+log_info "Kustomize ApplicationSet 'appset-kustomize-apps' created/updated successfully."
+
+# ============================================================
+# Deployment Complete - Verification
+# ============================================================
+
+log_info "========== Deployment complete. Running verification =========="
+
+# Verify repository Secret
+log_info "--- Repository Secret ---"
+kubectl -n "${ARGOCD_NS}" get secret "${REPO_SECRET_NAME}" \
+  -o jsonpath='{.metadata.name}{"\t"}{.metadata.labels.argocd\.argoproj\.io/secret-type}{"\n"}'
+
+# Verify AppProject
+log_info "--- AppProject ---"
+kubectl -n "${ARGOCD_NS}" get appproject appprj-default \
+  -o jsonpath='{.metadata.name}{"\t"}{.spec.description}{"\n"}'
+
+# Verify ApplicationSets
+log_info "--- ApplicationSets ---"
+kubectl -n "${ARGOCD_NS}" get applicationset
+
+# List generated Applications (may take a few seconds to appear)
+log_info "--- Applications (may take a few seconds to generate) ---"
+sleep 3
+kubectl -n "${ARGOCD_NS}" get applications 2>/dev/null || log_warn "No Applications generated yet. Check later with: kubectl -n argocd get applications"
+
+log_info "=========================================="
+log_info "One-click deployment completed!"
+log_info "=========================================="
+log_info ""
+log_info "Next steps:"
+log_info "  View app status:    kubectl -n ${ARGOCD_NS} get applications"
+log_info "  View sync details:  kubectl -n ${ARGOCD_NS} describe application <app-name>"
+log_info "  Access ArgoCD UI:   kubectl port-forward svc/argocd-server -n ${ARGOCD_NS} 8080:443"
