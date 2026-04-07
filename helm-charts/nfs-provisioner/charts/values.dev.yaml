@@ -1,7 +1,7 @@
 replicaCount: 1
 
 nfs:
-  server: 172.16.35.120
+  server: 192.168.164.100
   path: /data/nfs_pro/
 
 # For creating the StorageClass automatically:
