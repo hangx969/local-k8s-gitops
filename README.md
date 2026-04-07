@@ -1,91 +1,162 @@
 # local-k8s-gitops
 
-基于 GitOps 理念的 Kubernetes 自动化部署平台，使用 Helm 和 ArgoCD 实现。
+A GitOps-based Kubernetes automated deployment platform using ArgoCD, Helm, and Kustomize.
 
-## 仓库结构
+## Repository Structure
 
 ```
 local-k8s-gitops/
-├── helm-charts/               # Helm Charts 目录
-│   ├── cert-manager/          # Cert-Manager Helm Chart
-│   │   ├── app-config.yaml   # ArgoCD 应用配置
-│   │   └── charts/           # Helm Chart 文件
-│   ├── ingress-nginx/         # Ingress Nginx Helm Chart
-│   ├── istio-base/            # Istio 基础组件
-│   ├── istio-gateway/         # Istio Gateway
-│   ├── istiod/                # Istio 控制平面
-│   ├── jenkins/               # Jenkins CI/CD
-│   └── nfs-provisioner/       # NFS 存储提供者
+├── argocd/                        # ArgoCD configuration
+│   ├── deploy.sh                  # One-click deployment script
+│   ├── projects/
+│   │   └── default-project.yaml   # AppProject definition
+│   └── applicationsets/
+│       ├── appset-helm.yaml       # Helm ApplicationSet
+│       └── appset-kustomize.yaml  # Kustomize ApplicationSet
 │
-├── apps/                      # Kustomize 应用配置
-│   ├── base/                  # 基础配置（环境无关）
-│   │   ├── bookinfo/          # Bookinfo 示例应用
-│   │   ├── istio-addons/      # Istio 可观测性组件
-│   │   └── argocd-istio/      # ArgoCD Istio 集成
-│   ├── overlays/              # 环境特定配置
-│   │   ├── bookinfo/
-│   │   ├── istio-addons/
-│   │   └── argocd-istio/
-│   └── README.md
+├── helm-charts/                   # Helm chart applications
+│   ├── cert-manager/              # TLS certificate management
+│   ├── ingress-nginx/             # Ingress controller
+│   ├── istio-base/                # Istio base CRDs
+│   ├── istiod/                    # Istio control plane
+│   ├── istio-gateway/             # Istio ingress gateway
+│   ├── jenkins/                   # CI/CD platform
+│   └── nfs-provisioner/           # NFS dynamic storage provisioner
 │
-├── argocd/                    # ArgoCD 配置
-│   ├── projects/              # AppProject 定义
-│   │   └── default-project.yaml
-│   ├── applicationsets/       # ApplicationSet 定义
-│   │   ├── appset-helm.yaml       # Helm Chart 应用集
-│   │   └── appset-kustomize.yaml  # Kustomize 应用集
-│   └── README.md
+├── apps/                          # Kustomize applications
+│   ├── base/                      # Base configs (environment-agnostic)
+│   │   ├── bookinfo/              # Istio sample app
+│   │   ├── istio-addons/          # Grafana, Jaeger, Kiali, Prometheus
+│   │   └── argocd-istio/          # ArgoCD Istio gateway integration
+│   └── overlays/                  # Environment-specific overrides
+│       ├── bookinfo/
+│       ├── istio-addons/
+│       └── argocd-istio/
 │
 └── README.md
 ```
 
-## 目录说明
+## Prerequisites
 
-### 📦 helm-charts/
-存放 Helm Charts 配置，每个子目录代表一个应用。
+Before running the deployment, the following items must be prepared on the target cluster.
 
-**目录结构：**
-- `app-config.yaml` - ArgoCD 应用配置（包含 syncWave、namespace、版本等元数据）
-- `charts/` - Helm Chart 文件（Chart.yaml、values.yaml、templates/）
+### 1. ArgoCD Installed
 
-**已部署应用：**
-- **cert-manager** - 自动化 TLS 证书管理
-- **ingress-nginx** - Kubernetes Ingress 控制器
-- **istio-base** - Istio 基础 CRD 和配置
-- **istio-gateway** - Istio Ingress/Egress Gateway
-- **istiod** - Istio 控制平面
-- **jenkins** - CI/CD 平台
-- **nfs-provisioner** - NFS 动态存储提供者
+ArgoCD must be installed in the `argocd` namespace. The deploy script will verify this before proceeding.
 
-### 🚀 apps/
-存放基于 Kustomize 的应用配置。
+### 2. NFS Server
 
-**已部署应用：**
-- **bookinfo** - Istio 官方示例应用（微服务架构演示）
-- **istio-addons** - Istio 可观测性组件（Grafana、Jaeger、Kiali、Prometheus）
-- **argocd-istio** - ArgoCD 的 Istio Gateway 和 VirtualService 配置
+The NFS provisioner (used by Jenkins for persistent storage) requires an NFS server.
 
-详细说明请查看 [apps/README.md](./apps/README.md)
-
-### 🔄 argocd/
-存放 ArgoCD 的核心配置资源。
-
-**projects/** - AppProject 资源定义
-- `default-project.yaml` - 默认项目配置，管理所有应用的权限和部署策略
-
-**applicationsets/** - ApplicationSet 资源定义
-- `appset-helm.yaml` - 自动管理所有 Helm Chart 应用
-- `appset-kustomize.yaml` - 自动管理所有 Kustomize 应用
-
-## 快速开始
-
-### 1. 添加 Helm Chart 应用
+**Install and start NFS on the server node:**
 
 ```bash
-# 创建应用目录
+yum install nfs-utils -y
+systemctl start rpcbind && systemctl enable rpcbind
+systemctl start nfs-server && systemctl enable nfs-server
+```
+
+**Create the shared directory:**
+
+```bash
+mkdir /data/nfs_pro -p
+echo "/data/nfs_pro *(rw,no_root_squash)" >> /etc/exports
+exportfs -arv
+```
+
+**Verify the NFS server IP** matches the value in `helm-charts/nfs-provisioner/charts/values.dev.yaml`:
+
+```yaml
+nfs:
+  server: 172.16.35.120      # <-- Change this to your NFS server IP
+  path: /data/nfs_pro/
+```
+
+### 3. Port Availability
+
+Ensure the following ports are **not occupied** on cluster nodes:
+
+| Component | Ports | Reason |
+|-----------|-------|--------|
+| ingress-nginx | `80`, `443` | Runs as DaemonSet with `hostNetwork: true` |
+| istio-gateway | `30080`, `30443`, `30520` | NodePort services |
+
+### 4. DNS Resolution
+
+The following hostnames must resolve to your cluster node IP (via DNS or `/etc/hosts` on client machines):
+
+| Hostname | Purpose |
+|----------|---------|
+| `argocd.hanxux.local` | ArgoCD UI (via Istio Gateway) |
+| `bookinfo.hanxux.local` | Bookinfo sample app |
+| `jenkins.hanxux.local` | Jenkins UI (via ingress-nginx) |
+
+### 5. Jenkins Node Dependencies
+
+Jenkins agent pods mount host paths. Ensure the following are available on nodes where Jenkins runs:
+
+- `/var/run/docker.sock` and `/usr/bin/docker` — Docker installed
+- `/usr/bin/kubectl` — kubectl binary
+- `/root/.kube` — kubeconfig configured
+
+### 6. Image Registry Access
+
+All images are pulled from the DaoCloud mirror (`m.daocloud.io`). Verify network connectivity:
+
+```bash
+curl -I https://m.daocloud.io
+```
+
+### 7. Cluster Resources
+
+All components combined require approximately **1 GB+ memory**. Ensure your cluster has sufficient capacity.
+
+## Deployment
+
+### Quick Start
+
+```bash
+cd argocd/
+
+# Public repo (no credentials)
+chmod +x deploy.sh
+./deploy.sh
+
+# Private repo (with GitHub PAT)
+./deploy.sh -u <username> -p <github-pat>
+```
+
+The script will execute in order:
+1. Create a declarative Secret for ArgoCD to auto-discover the Git repo
+2. Create the AppProject (`appprj-default`)
+3. Create ApplicationSets (Helm first, then Kustomize)
+
+### Deployment Order
+
+ArgoCD uses `syncWave` to control the deployment sequence:
+
+| syncWave | Components |
+|----------|------------|
+| `-20` | cert-manager, ingress-nginx, istio-base, istiod, istio-gateway, jenkins, nfs-provisioner |
+| `10` | bookinfo, istio-addons, argocd-istio |
+
+Infrastructure (Helm) deploys first; applications (Kustomize) deploy after.
+
+### Verify
+
+```bash
+kubectl -n argocd get applications
+kubectl -n argocd describe application <app-name>
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+```
+
+## Adding New Applications
+
+### Add a Helm Chart App
+
+```bash
 mkdir -p helm-charts/my-app/charts
 
-# 创建 app-config.yaml
 cat > helm-charts/my-app/app-config.yaml <<EOF
 app:
   syncWave: "0"
@@ -95,22 +166,16 @@ app:
   namespace: my-app
 EOF
 
-# 创建或复制 Helm Chart 到 charts/ 目录
-cd helm-charts/my-app/charts
-helm create my-app
-# 或者复制现有的 Helm Chart
+# Place your Helm chart files under helm-charts/my-app/charts/
 ```
 
-### 2. 添加 Kustomize 应用
+### Add a Kustomize App
 
 ```bash
-# 创建 base 配置
-mkdir -p apps/base/my-app
-cd apps/base/my-app
-# 创建 Kubernetes 资源文件和 kustomization.yaml
+mkdir -p apps/base/my-app apps/overlays/my-app
 
-# 创建 overlay 配置
-mkdir -p apps/overlays/my-app
+# Create base resources and kustomization.yaml under apps/base/my-app/
+
 cat > apps/overlays/my-app/kustomization.yaml <<EOF
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -119,99 +184,11 @@ resources:
 EOF
 ```
 
-### 3. 部署到集群
+Push to `main` branch and ArgoCD will auto-detect and deploy.
 
-```bash
-# 提交到 Git 仓库
-git add .
-git commit -m "Add my-app"
-git push
+## GitOps Workflow
 
-# ArgoCD 会自动检测并部署应用
-# 查看部署状态
-kubectl --kubeconfig=<your-kubeconfig> get application -n argocd
-```
-
-## GitOps 工作流
-
-1. **提交代码** - 将配置更改推送到 Git 仓库
-2. **ArgoCD 检测** - ApplicationSet 自动扫描 Git 仓库，发现新应用或配置变更
-3. **自动同步** - ArgoCD 自动将变更同步到 Kubernetes 集群
-4. **健康检查** - 持续监控应用健康状态
-5. **自动修复** - 如果集群中的资源被手动修改，ArgoCD 会自动恢复到 Git 中定义的状态
-
-## 核心特性
-
-### 🔄 ApplicationSet 自动化
-- **Helm Charts**: `appset-helm.yaml` 自动扫描 `helm-charts/*/app-config.yaml`
-- **Kustomize Apps**: `appset-kustomize.yaml` 自动扫描 `apps/overlays/*`
-- 新增应用无需手动创建 Application，只需按规范创建目录结构
-
-### 🎯 同步波次控制
-通过 `syncWave` 注解控制应用部署顺序：
-- `-20`: Istio 基础组件（istio-base）
-- `-10`: Istio 控制平面（istiod）
-- `0`: 其他基础设施和应用
-
-### 🛡️ 忽略差异配置
-针对 Istio Webhook 等动态资源配置 `ignoreDifferences`，避免误报 OutOfSync 状态
-
-### 🔐 自动命名空间创建
-配置了 `CreateNamespace=true`，应用部署时自动创建所需的命名空间
-
-## 最佳实践
-
-### Helm Charts
-- ✅ 在 `app-config.yaml` 中定义应用元数据（syncWave、namespace、version）
-- ✅ 使用 `values.yaml` 作为默认配置
-- ✅ 使用 `values.dev.yaml` 等文件进行环境特定配置
-- ✅ 合理设置 syncWave 确保依赖顺序正确
-
-### Kustomize 应用
-- ✅ Base 层保持通用性，包含完整的资源定义
-- ✅ Overlay 层通过引用 base 实现复用
-- ✅ 使用 patches 进行环境特定修改
-- ✅ 保持目录结构清晰
-
-### ArgoCD 配置
-- ✅ 使用 ApplicationSet 实现应用自动发现和管理
-- ✅ 配置 `ignoreDifferences` 处理动态资源
-- ✅ 使用 `automated.prune` 和 `selfHeal` 保持集群状态一致
-- ✅ 合理使用 AppProject 管理权限
-
-### Git 工作流
-- ✅ 使用有意义的提交信息
-- ✅ 配置变更前先本地验证（kubectl apply --dry-run）
-- ✅ 保持配置文件简洁可读，添加适当的注释
-
-## 相关资源
-
-- [Helm 官方文档](https://helm.sh/docs/)
-- [ArgoCD 官方文档](https://argo-cd.readthedocs.io/)
-- [Kustomize 官方文档](https://kustomize.io/)
-- [Istio 官方文档](https://istio.io/latest/docs/)
-- [GitOps 最佳实践](https://www.gitops.tech/)
-
-## 常见问题
-
-### 如何查看应用状态？
-```bash
-kubectl --kubeconfig=<your-kubeconfig> get application -n argocd
-```
-
-### 如何手动触发同步？
-```bash
-# 通过 kubectl
-kubectl --kubeconfig=<your-kubeconfig> patch application <app-name> -n argocd \
-  --type merge -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{}}}'
-
-# 或通过 ArgoCD UI 点击 SYNC 按钮
-```
-
-### 应用显示 OutOfSync 怎么办？
-1. 检查 Git 仓库和集群中的资源差异
-2. 确认是否配置了 `ignoreDifferences`（针对动态资源）
-3. 查看 ArgoCD Application 详情了解具体差异
-
-### 如何调整应用部署顺序？
-修改 `app-config.yaml` 中的 `syncWave` 值，数字越小越先部署
+1. Push config changes to the Git repo
+2. ApplicationSet generators scan the repo and discover apps
+3. ArgoCD auto-syncs changes to the cluster
+4. Continuous health monitoring with auto-heal enabled
