@@ -44,7 +44,7 @@ controller:
     # -- Controller image tag label
     tagLabel: jdk21
     # -- Controller image pull policy
-    pullPolicy: "Always"
+    pullPolicy: "IfNotPresent"
   # -- Controller image pull secret
   imagePullSecretName:
   # -- Lifecycle specification for controller-container
