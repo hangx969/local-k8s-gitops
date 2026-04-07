@@ -5,6 +5,7 @@ kind: Kustomization
 namespace: bookinfo
 
 resources:
+  - namespace.yaml
   - bookinfo.yaml
   - bookinfo-gateway.yaml
   - bookinfo-vs.yaml
