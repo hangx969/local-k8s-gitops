@@ -1,0 +1,4 @@
+# Default values for external-secrets umbrella chart
+# Values under the "external-secrets" key are passed to the subchart
+external-secrets:
+  installCRDs: true

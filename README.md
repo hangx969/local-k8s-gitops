@@ -117,19 +117,13 @@ All components combined require approximately **1 GB+ memory**. Ensure your clus
 
 ```bash
 cd argocd/
-
-# Public repo (no credentials)
 chmod +x deploy.sh
 ./deploy.sh
-
-# Private repo (with GitHub PAT)
-./deploy.sh -u <username> -p <github-pat>
 ```
 
 The script will execute in order:
-1. Create a declarative Secret for ArgoCD to auto-discover the Git repo
-2. Create the AppProject (`appprj-default`)
-3. Create ApplicationSets (Helm first, then Kustomize)
+1. Create the AppProject (`appprj-default`)
+2. Create ApplicationSets (Helm first, then Kustomize)
 
 ### Deployment Order
 
@@ -185,6 +179,44 @@ EOF
 ```
 
 Push to `main` branch and ArgoCD will auto-detect and deploy.
+
+## Private Repository Authentication
+
+If your Git repository is **private**, you need to create a Kubernetes Secret so that ArgoCD can authenticate and pull the repo.
+
+ArgoCD auto-discovers repositories by detecting Secrets with the label `argocd.argoproj.io/secret-type: repository`.
+
+### Create a Repository Secret
+
+```bash
+kubectl create secret generic repo-my-private-repo \
+  -n argocd \
+  --from-literal=type=git \
+  --from-literal=url=https://github.com/<owner>/<repo>.git \
+  --from-literal=username=<github-username> \
+  --from-literal=password=<github-pat> \
+  --dry-run=client -o yaml \
+  | kubectl label --local -f - \
+      argocd.argoproj.io/secret-type=repository \
+      --dry-run=client -o yaml \
+  | kubectl apply -f -
+```
+
+Replace the placeholders:
+- `repo-my-private-repo` — any unique Secret name
+- `<owner>/<repo>` — your GitHub repository path
+- `<github-username>` — your GitHub username
+- `<github-pat>` — a GitHub Personal Access Token with `repo` scope
+
+### Verify
+
+```bash
+kubectl -n argocd get secret repo-my-private-repo \
+  -o jsonpath='{.metadata.labels.argocd\.argoproj\.io/secret-type}'
+# Expected output: repository
+```
+
+> **Note:** For SSH-based authentication, use `--from-literal=type=git` and `--from-literal=sshPrivateKey="$(cat ~/.ssh/id_rsa)"` instead of username/password. See the [ArgoCD Declarative Setup docs](https://argo-cd.readthedocs.io/en/stable/operator-manual/declarative-setup/#repositories) for all options.
 
 ## GitOps Workflow
 
