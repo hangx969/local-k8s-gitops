@@ -58,7 +58,8 @@ spec:
         # 添加：Kustomize 配置
         # ============================================
         kustomize:
-          version: v5.4.2
+          # Use ArgoCD's built-in kustomize version (currently v5.8.1)
+          # Do not specify a custom version unless it is registered in argocd-cm
 
           # 命名空间：强制所有资源使用指定的命名空间
           # 注释：由于 base kustomization.yaml 已定义 namespace，这里注释掉
