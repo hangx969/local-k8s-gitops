@@ -1,8 +1,7 @@
 # Dev environment overrides for external-secrets
 external-secrets:
-  # Use DaoCloud mirror for image pull acceleration
   image:
-    repository: m.daocloud.io/ghcr.io/external-secrets/external-secrets
+    repository: ghcr.io/external-secrets/external-secrets
     pullPolicy: IfNotPresent
 
   # Resource limits for dev environment
@@ -16,7 +15,7 @@ external-secrets:
 
   certController:
     image:
-      repository: m.daocloud.io/ghcr.io/external-secrets/external-secrets
+      repository: ghcr.io/external-secrets/external-secrets
     resources:
       requests:
         cpu: 50m
@@ -27,7 +26,7 @@ external-secrets:
 
   webhook:
     image:
-      repository: m.daocloud.io/ghcr.io/external-secrets/external-secrets
+      repository: ghcr.io/external-secrets/external-secrets
     resources:
       requests:
         cpu: 50m
