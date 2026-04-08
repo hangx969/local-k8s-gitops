@@ -29,6 +29,12 @@ credentialsId:
 # -- Enables rendering of the helm.sh/chart label to the annotations
 renderHelmLabels: true
 
+# -- Configures extra labels for the agent all objects
+extraLabels: {}
+
+# -- Configures extra manifests
+extraObjects:
+
 controller:
   # -- Used for label app.kubernetes.io/component
   componentName: "jenkins-controller"
@@ -44,7 +50,11 @@ controller:
     # -- Controller image tag label
     tagLabel: jdk21
     # -- Controller image pull policy
-    pullPolicy: "IfNotPresent"
+    pullPolicy: "Always"
+
+  # -- Number of replicas. Max 1. Can be set to 0 for maintenance scenarios.
+  replicas: 1
+
   # -- Controller image pull secret
   imagePullSecretName:
   # -- Lifecycle specification for controller-container
@@ -189,6 +199,9 @@ controller:
 
   # -- Deprecated in favor of `controller.podSecurityContextOverride`. uid that will be used for persistent volume.
   fsGroup: 1000
+
+  #  -- Deprecated in favor of `controller.podSecurityContextOverride`. fsGroupChangePolicy for the pod security context
+  fsGroupChangePolicy: OnRootMismatch
 
   # If you have PodSecurityPolicies that require dropping of capabilities as suggested by CIS K8s benchmark, put them here
   # securityContextCapabilities:
@@ -349,7 +362,7 @@ controller:
     defaultCrumbIssuer:
       # -- Enable the default CSRF Crumb issuer
       enabled: true
-      # -- Enable proxy compatibility
+      # -- Enable proxy compatibility. This setting is ignored if you are not on the current LTS release and will be dropped with the next LTS.
       proxyCompatability: true
 
   # Kubernetes service type for the JNLP agent service
@@ -405,10 +418,10 @@ controller:
   # Plugins will be installed during Jenkins controller start
   # -- List of Jenkins plugins to install. If you don't want to install plugins, set it to `false`
   installPlugins:
-    - kubernetes:4358.vcfd9c5a_0a_f51
+    - kubernetes:4423.vb_59f230b_ce53
     - workflow-aggregator:608.v67378e9d3db_1
-    - git:5.7.0
-    - configuration-as-code:2006.v001a_2ca_6b_574
+    - git:5.10.1
+    - configuration-as-code:2061.vc08919f7fc37
 
   # If set to false, Jenkins will download the minimum required version of all dependencies.
   # -- Download the minimum required version or latest version of all dependencies
@@ -570,8 +583,10 @@ controller:
         # -- Repository of the image that triggers the reload
         repository: kiwigrid/k8s-sidecar
         # -- Tag for the image that triggers the reload
-        tag: 1.30.3
+        tag: 2.5.0
       imagePullPolicy: IfNotPresent
+      # -- Port for sidecar health probes
+      healthPort: 8060
       resources:
         {}
         #   limits:
@@ -690,6 +705,9 @@ controller:
   # -- Topology spread constraints
   topologySpreadConstraints: {}
 
+  # -- DNS config for the pod
+  dnsConfig: {}
+
   ingress:
     # -- Enables ingress
     enabled: false
@@ -705,6 +723,9 @@ controller:
     #       {{ template "jenkins.fullname" . }}
     #     # Don't use string here, use only integer value!
     #     servicePort: 8080
+
+    # -- Ingress rule pathType, choices are: Exact, ImplementationSpecific, Prefix
+    pathType: ImplementationSpecific
 
     # For Kubernetes v1.14+, use 'networking.k8s.io/v1beta1'
     # For Kubernetes v1.19+, use 'networking.k8s.io/v1'
@@ -790,6 +811,25 @@ controller:
     # -- Route path
     path:
 
+  # Gateway API HTTPRoute
+  httpRoute:
+    # Toggle to create an HTTPRoute resource alongside the existing ingress definition
+    enabled: false
+    apiVersion: "gateway.networking.k8s.io/v1"
+    kind: HTTPRoute
+    # specify the Gateway instance to bind the HTTPRoute to.
+    parentRefs: []
+    # - name: envoy-gateway-bundle
+    #   namespace: envoy-gateway-system
+    # Reuse ingress host information if true; set to false to manage hostnames below
+    reuseIngressConfiguration: false
+    # Hostnames to use for the http route, only used if reuseIngressConfiguration is false.
+    hostnames: []
+    # Extra HTTPRoute rules that will be appended before the default backend
+    extraRules: []
+    # -- HTTPRoute annotations
+    annotations: {}
+
   # -- Allows for adding entries to Pod /etc/hosts
   hostAliases: []
   # ref: https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/
@@ -851,9 +891,9 @@ controller:
   httpsKeyStore:
     # -- Enables HTTPS keystore on jenkins controller
     enable: false
-    # -- Name of the secret that already has ssl keystore
+    # -- Name of the secret that already has SSL keystore
     jenkinsHttpsJksSecretName: ""
-    # -- Name of the key in the secret that already has ssl keystore
+    # -- Name of the key in the secret that already has SSL keystore
     jenkinsHttpsJksSecretKey: "jenkins-jks-file"
     # -- Name of the secret that contains the JKS password, if it is not in the same secret as the JKS file
     jenkinsHttpsJksPasswordSecretName: ""
@@ -962,7 +1002,7 @@ agent:
     # -- Repository to pull the agent jnlp image from
     repository: "jenkins/inbound-agent"
     # -- Tag of the image to pull
-    tag: "3324.vea_eda_e98cd69-1"
+    tag: "3355.v388858a_47b_33-17"
   # -- Configure working directory for default agent
   workingDir: "/home/jenkins/agent"
   nodeUsageMode: "NORMAL"
@@ -1379,4 +1419,4 @@ helmtest:
       # -- Repository of the image used to test the framework
       repository: "bats/bats"
       # -- Tag of the image to test the framework
-      tag: "1.12.0"
+      tag: "1.13.0"

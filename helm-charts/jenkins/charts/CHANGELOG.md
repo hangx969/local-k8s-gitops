@@ -12,6 +12,359 @@ Use the following links to reference issues, PRs, and commits prior to v2.6.0.
 The changelog until v1.5.7 was auto-generated based on git commits.
 Those entries include a reference to the git commit to be able to get more details.
 
+## 5.9.12
+
+Update `git` to version `5.10.1`
+
+## 5.9.11
+
+Update `jenkins/inbound-agent` to version `3355.v388858a_47b_33-17`
+
+## 5.9.10
+
+Update `configuration-as-code` to version `2061.vc08919f7fc37`
+
+## 5.9.9
+
+Update `jenkins/jenkins` to version `2.541.3-jdk21`
+
+## 5.9.8
+
+Update `jenkins/inbound-agent` to version `3355.v388858a_47b_33-16`
+
+## 5.9.7
+
+Update `configuration-as-code` to version `2053.vb_0da_47381a_25`
+
+## 5.9.6
+
+Don't add `secretName: "<nil>"` to ingress if no value defined
+
+## 5.9.5
+
+Don't render `tls` ingress section if its value is `{}`
+
+## 5.9.4
+
+Fix templating in `extraObjects`
+
+## 5.9.3
+
+Allow to scale controller to zero replicas during maintenance scenarios.
+
+## 5.9.2
+
+Add support for annotations on the HTTPRoute resource
+
+## 5.9.1
+
+Fix templating in secretName for ingress
+
+## 5.9.0
+
+Added [Gateway API](https://gateway-api.sigs.k8s.io/api-types/httproute/) support
+
+## 5.8.142
+
+Update `jenkins/jenkins` to version `2.541.2-jdk21`
+
+## 5.8.141
+
+Update `jenkins/inbound-agent` to version `3355.v388858a_47b_33-14`
+
+## 5.8.140
+
+Update `jenkins/inbound-agent` to version `3355.v388858a_47b_33-13`
+
+## 5.8.139
+
+Update `git` to version `5.10.0`
+
+## 5.8.138
+
+Update `jenkins/inbound-agent` to version `3355.v388858a_47b_33-12`
+
+## 5.8.137
+
+Update `jenkins/inbound-agent` to version `3355.v388858a_47b_33-11`
+
+## 5.8.136
+
+Update `jenkins/inbound-agent` to version `3355.v388858a_47b_33-10`
+
+## 5.8.135
+
+Update `jenkins/inbound-agent` to version `3355.v388858a_47b_33-9`
+
+## 5.8.134
+
+Update `configuration-as-code` to version `2037.v8e5349845172`
+
+## 5.8.133
+
+Update `configuration-as-code` to version `2036.v0b_c2de701dcb_`
+
+## 5.8.132
+
+Update `git` to version `5.9.0`
+
+## 5.8.131
+
+Add `extraObjects`
+
+## 5.8.130
+
+Update `jenkins/inbound-agent` to version `3355.v388858a_47b_33-7`
+
+## 5.8.129
+
+Update `kubernetes` to version `4423.vb_59f230b_ce53`
+
+## 5.8.128
+
+Add `ingress.resourceRootUrl` to ingress' `spec.tls.hosts`
+
+## 5.8.127
+
+Update `jenkins/inbound-agent` to version `3355.v388858a_47b_33-6`
+
+## 5.8.126
+
+Update `docker.io/kiwigrid/k8s-sidecar` to version `2.5.0`
+
+## 5.8.125
+
+Update `jenkins/jenkins` to version `2.541.1-jdk21`
+
+## 5.8.124
+
+Update `docker.io/kiwigrid/k8s-sidecar` to version `2.4.0`
+
+## 5.8.123
+
+Update `kubernetes` to version `4419.v36079e3b_eb_5b_`
+
+## 5.8.122
+
+Update `docker.io/kiwigrid/k8s-sidecar` to version `2.3.0`
+
+## 5.8.121
+
+Update `docker.io/kiwigrid/k8s-sidecar` to version `2.1.4`
+
+## 5.8.120
+
+Update `configuration-as-code` to version `2031.veb_a_fdda_b_3ffd`
+
+## 5.8.119
+
+Update `kubernetes` to version `4416.v2ea_b_5372da_a_e`
+
+## 5.8.118
+
+Update `jenkins/inbound-agent` to version `3355.v388858a_47b_33-5`
+
+## 5.8.117
+
+Added value to override default ingress pathType
+
+## 5.8.116
+
+Added default fsGroupChangePolicy value, allow overriding in accordance to current deprecation plans
+
+## 5.8.115
+
+Removed controller.csrf.defaultCrumbIssuer.proxyCompatability as it is dropped in core
+
+## 5.8.114
+
+Update `kubernetes` to version `4398.vb_b_33d9e7fe23`
+
+## 5.8.113
+
+Update `git` to version `5.8.1`
+
+## 5.8.112
+
+Update `jenkins/inbound-agent` to version `3355.v388858a_47b_33-3`
+
+## 5.8.111
+
+Update `jenkins/jenkins` to version `2.528.3-jdk21`
+
+## 5.8.110
+
+Update `jenkins/inbound-agent` to version `3345.v03dee9b_f88fc-6`
+
+## 5.8.109
+
+Update `jenkins/jenkins` to version `2.528.2-jdk21`
+
+## 5.8.108
+
+Update `kubernetes` to version `4392.v19cea_fdb_5913`
+
+## 5.8.107
+
+Update `docker.io/bats/bats` to version `1.13.0`
+
+## 5.8.106
+
+Update `jenkins/inbound-agent` to version `3345.v03dee9b_f88fc-5`
+
+## 5.8.105
+
+Update `jenkins/inbound-agent` to version `3345.v03dee9b_f88fc-3`
+
+## 5.8.104
+
+Update `configuration-as-code` to version `2006.v001a_2ca_6b_574`
+
+## 5.8.103
+
+Update `jenkins/inbound-agent` to version `3345.v03dee9b_f88fc-2`
+
+## 5.8.102
+
+Update `jenkins/jenkins` to version `2.528.1-jdk21`
+
+## 5.8.101
+
+Update `jenkins/inbound-agent` to version `3345.v03dee9b_f88fc-1`
+
+## 5.8.100
+
+Add support for [custom DNS configuration](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-dns-config) in the controller
+
+## 5.8.99
+
+Update `git` to version `5.8.0`
+
+## 5.8.98
+
+Update `jenkins/inbound-agent` to version `3341.v0766d82b_dec0-4`
+
+## 5.8.97
+
+Update `configuration-as-code` to version `1998.v3e50e6e9d9d3`
+
+## 5.8.96
+
+Update `jenkins/inbound-agent` to version `3341.v0766d82b_dec0-3`
+
+## 5.8.95
+
+Update `jenkins/inbound-agent` to version `3341.v0766d82b_dec0-2`
+
+## 5.8.94
+
+Update `kubernetes` to version `4384.v1b_6367f393d9`
+
+## 5.8.93
+
+Update `kubernetes` to version `4383.vb_76fc9d3c4dc`
+
+## 5.8.92
+
+Update `configuration-as-code` to version `1995.v540b_50a_eb_0c1`
+
+## 5.8.91
+
+Fix `docker-agent` git repository URL
+
+## 5.8.90
+
+Update `jenkins/inbound-agent` to version `3341.v0766d82b_dec0-1`
+
+## 5.8.89
+
+Fix chart deployment.
+
+## 5.8.88
+
+Update `jenkins/jenkins` to version `2.516.3-jdk21`
+
+## 5.8.87
+
+Update `jenkins/inbound-agent` to version `3327.v868139a_d00e0-8`
+
+## 5.8.86
+
+Update `kubernetes` to version `4371.vb_33b_086d54a_1`
+
+## 5.8.85
+
+Update `jenkins/inbound-agent` to version `3327.v868139a_d00e0-7`
+
+## 5.8.84
+
+Update `kubernetes` to version `4369.va_9a_89327dd35`
+
+## 5.8.83
+
+Revert `defaultConfig=false` changes, see [#1470](https://github.com/jenkinsci/helm-charts/issues/1470).
+
+## 5.8.82
+
+Update `jenkins/jenkins` to version `2.516.2-jdk21`
+
+## 5.8.81
+
+Update `jenkins/inbound-agent` to version `3327.v868139a_d00e0-6`
+
+## 5.8.80
+
+- Fix [#1435](https://github.com/jenkinsci/helm-charts/issues/1435): Ensure `controller.JCasC.defaultConfig=false` properly prevents generation of all JCasC ConfigMaps
+- Changed the conditional logic in jcasc-config.yaml to only generate ConfigMaps when defaultConfig is true
+- Moved securityRealm and authorizationStrategy configuration into configScripts for better maintainability
+
+## 5.8.79
+
+Update `jenkins/inbound-agent` to version `3327.v868139a_d00e0-5`
+
+## 5.8.78
+
+Update `docker.io/kiwigrid/k8s-sidecar` to version `1.30.7`
+
+## 5.8.77
+
+Update `configuration-as-code` to version `1985.vdda_32d0c4ea_b_`
+
+## 5.8.76
+
+Fix non-deterministic checksum calculation in unit tests by adding `renderHelmLabels: false` to "render pod annotations" test. This resolves Renovate PR failures when chart version changes.
+
+## 5.8.75
+
+Minor documentation improvements
+
+## 5.8.74
+
+unittest fix - allow helm version label to be dynamic in tests
+
+## 5.8.73
+
+Standardize labels and add extraLabels support across chart:
+
+- Standardize label application patterns throughout all template files
+- Add extraLabels configuration option for custom user-defined labels
+
+## 5.8.72
+
+Render securityRealm and authorizationStrategy as JCasC ConfigMaps when set outside configScripts (Fixes #1391)
+
+## 5.8.71
+
+Update `jenkins/inbound-agent` to version `3327.v868139a_d00e0-2`
+
+## 5.8.70
+
+Update `jenkins/inbound-agent` to version `3324.vea_eda_e98cd69-2`
+
+## 5.8.69
+
+Update `jenkins/jenkins` to version `2.516.1-jdk21`
+
 ## 5.8.68
 
 Update `jenkins/inbound-agent` to version `3324.vea_eda_e98cd69-1`
@@ -2129,7 +2482,7 @@ Fixed a bug in the configuration as code reload URL, where it wouldn't work with
 
 ## 1.9.22
 
-Add `master.jenkinsHome` and `master.jenkinsRef` options to use docker images derivates from Jenkins
+Add `master.jenkinsHome` and `master.jenkinsRef` options to use Docker images derivates from Jenkins
 
 ## 1.9.21
 
@@ -2203,7 +2556,7 @@ Make `agent.slaveConnectTimeout` configurable: by increasing this value Jenkins 
 
 ## 1.9.6
 
-Enables jenkins to use keystore inorder to have native ssl support #17790 <https://wiki.jenkins.io/pages/viewpage.action?pageId=135468777>
+Enables jenkins to use keystore inorder to have native SSL support #17790 <https://wiki.jenkins.io/pages/viewpage.action?pageId=135468777>
 
 ## 1.9.5 Enable remoting security
 
@@ -2454,7 +2807,7 @@ commit: 7cc9b54c7
 
 ## 1.4.0
 
-Change the value name for docker image tags - standartise to helm preferred value name - tag; this also allows auto-deployments using weaveworks flux (#15565)
+Change the value name for Docker image tags - standartise to helm preferred value name - tag; this also allows auto-deployments using weaveworks flux (#15565)
 commit: 5c3d920e7
 
 ## 1.3.6
@@ -2885,7 +3238,7 @@ commit: 0d51a4187
 
 ## 0.28.3
 
-fix parsing java options (#10140)
+fix parsing Java options (#10140)
 commit: 9448d0293
 
 ## 0.28.2

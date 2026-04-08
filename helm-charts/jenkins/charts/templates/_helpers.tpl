@@ -13,6 +13,21 @@ Expand the label of the chart.
 {{- printf "%s-%s" (include "jenkins.name" .) .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
+{{/*
+Common labels for all Jenkins resources
+*/}}
+{{- define "jenkins.labels" -}}
+"app.kubernetes.io/name": '{{ template "jenkins.name" .}}'
+"app.kubernetes.io/managed-by": "{{ .Release.Service }}"
+"app.kubernetes.io/instance": "{{ .Release.Name }}"
+"app.kubernetes.io/component": "{{ .Values.controller.componentName }}"
+{{- if .Values.renderHelmLabels }}
+"helm.sh/chart": "{{ template "jenkins.label" .}}"
+{{- end }}
+{{- with .Values.extraLabels }}
+{{- toYaml . | nindent 0 }}
+{{- end }}
+{{- end -}}
 
 {{/*
 Allow the release namespace to be overridden for multi-namespace deployments in combined charts.
@@ -318,7 +333,7 @@ jenkins:
   {{- $_ := set $ "Values" $oldRoot.Values }}
   {{- end }}
   slaveAgentPort: {{ .Values.controller.agentListenerPort }}
-  {{- if .Values.controller.csrf.defaultCrumbIssuer.enabled }}
+  {{- if and .Values.controller.csrf.defaultCrumbIssuer.enabled (eq .Chart.AppVersion (index (splitList "-" (include "controller.image.tag" .)) 0)) (lt (atoi (index (splitList "." .Chart.AppVersion) 1)) 543) }}
   crumbIssuer:
     standard:
       excludeClientIPFromCrumb: {{ if .Values.controller.csrf.defaultCrumbIssuer.proxyCompatability }}true{{ else }}false{{- end }}
@@ -636,6 +651,8 @@ Create the HTTP port for interacting with the controller
           fieldPath: metadata.name
     - name: LABEL
       value: "{{ template "jenkins.fullname" $root }}-jenkins-config"
+    - name: HEALTH_PORT
+      value: "{{ $root.Values.controller.sidecars.configAutoReload.healthPort }}"
     - name: FOLDER
       value: "{{ $root.Values.controller.sidecars.configAutoReload.folder }}"
     - name: NAMESPACE
@@ -684,6 +701,8 @@ Create the HTTP port for interacting with the controller
       {{- if $root.Values.persistence.subPath }}
       subPath: {{ $root.Values.persistence.subPath }}
       {{- end }}
+    - name: tmp-volume
+      mountPath: /tmp
     {{- if $root.Values.controller.sidecars.configAutoReload.logging.configuration.override }}
     - name: auto-reload-config
       mountPath: {{ $root.Values.controller.jenkinsHome }}/auto-reload
@@ -694,4 +713,12 @@ Create the HTTP port for interacting with the controller
 {{ (tpl (toYaml $root.Values.controller.sidecars.configAutoReload.additionalVolumeMounts) $root) | indent 4 }}
     {{- end }}
 
+{{- end -}}
+
+{{- define "controller.replicas" -}}
+{{- $replicas := int (default 1 .Values.controller.replicas) -}}
+{{- if or (lt $replicas 0) (gt $replicas 1) -}}
+{{- fail "controller.replicas must be 0 or 1" -}}
+{{- end -}}
+{{- .Values.controller.replicas -}}
 {{- end -}}

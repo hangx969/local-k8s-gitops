@@ -11,13 +11,7 @@ kind: Ingress
 metadata:
   namespace: {{ template "jenkins.namespace" . }}
   labels:
-    "app.kubernetes.io/name": '{{ template "jenkins.name" .}}'
-    {{- if .Values.renderHelmLabels }}
-    "helm.sh/chart": "{{ template "jenkins.label" .}}"
-    {{- end }}
-    "app.kubernetes.io/managed-by": "{{ .Release.Service }}"
-    "app.kubernetes.io/instance": "{{ .Release.Name }}"
-    "app.kubernetes.io/component": "{{ .Values.controller.componentName }}"
+    {{- include "jenkins.labels" . | nindent 4 }}
 {{- if .Values.controller.ingress.labels }}
 {{ toYaml .Values.controller.ingress.labels | indent 4 }}
 {{- end }}
@@ -40,7 +34,7 @@ spec:
             name: {{ template "jenkins.fullname" . }}
             port:
               number: {{ .Values.controller.servicePort }}
-        pathType: ImplementationSpecific
+        pathType: {{ .Values.controller.ingress.pathType }}
 {{- else }}
           serviceName: {{ template "jenkins.fullname" . }}
           servicePort: {{ .Values.controller.servicePort }}
@@ -63,7 +57,7 @@ spec:
             name: {{ template "jenkins.fullname" . }}
             port:
               number: {{ .Values.controller.servicePort }}
-        pathType: ImplementationSpecific
+        pathType: {{ .Values.controller.ingress.pathType }}
 {{- else }}
           serviceName: {{ template "jenkins.fullname" . }}
           servicePort: {{ .Values.controller.servicePort }}
@@ -71,7 +65,26 @@ spec:
     host: {{ tpl .Values.controller.ingress.resourceRootUrl . | quote }}
 {{- end }}
 {{- if .Values.controller.ingress.tls }}
+{{- $withTlsEntries := false }}
+{{- range .Values.controller.ingress.tls }}
+  {{- if gt (len .) 0 }}
+    {{- $withTlsEntries = true }}
+  {{- end }}
+{{- end }}
+{{- if $withTlsEntries }}
   tls:
-{{ tpl (toYaml .Values.controller.ingress.tls ) . | indent 4 }}
-{{- end -}}
+{{- range .Values.controller.ingress.tls }}
+  - hosts:
+{{- range .hosts }}
+      - {{ tpl . $ | quote }}
+{{- end }}
+{{- if $.Values.controller.ingress.resourceRootUrl }}
+      - {{ tpl $.Values.controller.ingress.resourceRootUrl $ | quote }}
+{{- end }}
+{{- if .secretName }}
+    secretName: {{ tpl (.secretName | toString) $ | quote }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{- end }}

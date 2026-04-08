@@ -8,13 +8,7 @@ metadata:
   name: {{ template "jenkins.fullname" . }}
   namespace: {{ template "jenkins.namespace" . }}
   labels:
-    "app.kubernetes.io/name": '{{ template "jenkins.name" .}}'
-    {{- if .Values.renderHelmLabels }}
-    "helm.sh/chart": "{{ template "jenkins.label" .}}"
-    {{- end }}
-    "app.kubernetes.io/managed-by": "{{ .Release.Service }}"
-    "app.kubernetes.io/instance": "{{ .Release.Name }}"
-    "app.kubernetes.io/component": "{{ .Values.controller.componentName }}"
+    {{- include "jenkins.labels" . | nindent 4 }}
     {{- range $key, $val := .Values.controller.statefulSetLabels }}
     {{ $key }}: {{ $val | quote }}
     {{- end}}
@@ -24,7 +18,7 @@ metadata:
   {{- end }}
 spec:
   serviceName: {{ template "jenkins.fullname" . }}
-  replicas: 1
+  replicas: {{ include "controller.replicas" . }}
   selector:
     matchLabels:
       "app.kubernetes.io/component": "{{ .Values.controller.componentName }}"
@@ -36,10 +30,7 @@ spec:
   template:
     metadata:
       labels:
-        "app.kubernetes.io/name": '{{ template "jenkins.name" .}}'
-        "app.kubernetes.io/managed-by": "{{ .Release.Service }}"
-        "app.kubernetes.io/instance": "{{ .Release.Name }}"
-        "app.kubernetes.io/component": "{{ .Values.controller.componentName }}"
+        {{- include "jenkins.labels" . | nindent 8 }}
         {{- range $key, $val := .Values.controller.podLabels }}
         {{ $key }}: {{ $val | quote }}
         {{- end}}
@@ -71,6 +62,10 @@ spec:
       topologySpreadConstraints:
 {{ toYaml .Values.controller.topologySpreadConstraints | indent 8 }}
       {{- end }}
+      {{- if .Values.controller.dnsConfig }}
+      dnsConfig:
+{{ toYaml .Values.controller.dnsConfig | indent 8 }}
+      {{- end }}
       {{- if quote .Values.controller.terminationGracePeriodSeconds }}
       terminationGracePeriodSeconds: {{ .Values.controller.terminationGracePeriodSeconds }}
       {{- end }}
@@ -91,12 +86,14 @@ spec:
     {{/* The rest of this section should be replaced with the contents of this comment one the runAsUser, fsGroup, and securityContextCapabilities Helm chart values have been removed:
         runAsUser: 1000
         fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
         runAsNonRoot: true
     */}}
         runAsUser: {{ default 0 .Values.controller.runAsUser }}
     {{- if and (.Values.controller.runAsUser) (.Values.controller.fsGroup) }}
       {{- if not (eq (int .Values.controller.runAsUser) 0) }}
         fsGroup: {{ .Values.controller.fsGroup }}
+        fsGroupChangePolicy: {{ .Values.controller.fsGroupChangePolicy }}
         runAsNonRoot: true
       {{- end }}
       {{- if .Values.controller.securityContextCapabilities }}
