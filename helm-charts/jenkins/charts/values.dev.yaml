@@ -95,4 +95,4 @@ agent:
 persistence:
   enabled: true
   storageClass: "sc-nfs"
-  size: "5Gi"
+  size: "8Gi"
