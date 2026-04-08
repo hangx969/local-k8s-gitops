@@ -19,7 +19,7 @@ spec:
     # 扫描 apps/overlays 下的所有子目录
     # 每个子目录代表一个要部署的应用
     - git:
-        repoURL: https://github.com/hangx969/local-k8s-gitops.git
+        repoURL: https://gitee.com/hangxu969/local-k8s-gitops.git
         revision: main
         directories:
           # 匹配 apps/overlays 下的所有子目录
@@ -48,7 +48,7 @@ spec:
       project: appprj-default
 
       source:
-        repoURL: https://github.com/hangx969/local-k8s-gitops.git
+        repoURL: https://gitee.com/hangxu969/local-k8s-gitops.git
         targetRevision: HEAD
         # Kustomize 应用的路径
         # 例如：apps/overlays/kiali

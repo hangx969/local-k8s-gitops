@@ -22,7 +22,7 @@ spec:
           # 每个 app-config.yaml 代表一个需要部署的 Helm chart
           # 注意：使用 app-config.yaml 而非 config.yaml，避免与 Helm templates 中的 config.yaml 冲突
           - git:
-              repoURL: https://github.com/hangx969/local-k8s-gitops.git
+              repoURL: https://gitee.com/hangxu969/local-k8s-gitops.git
               revision: main  # Git 分支
               files:
                 # * 通配符会匹配所有子目录
@@ -72,7 +72,7 @@ spec:
       # 定义应用的来源：从哪里获取 Kubernetes 资源定义
       source:
         # Git 仓库 URL
-        repoURL: "https://github.com/hangx969/local-k8s-gitops.git"
+        repoURL: "https://gitee.com/hangxu969/local-k8s-gitops.git"
         # 目标版本：可以是分支名、标签或 commit SHA
         # HEAD 表示跟踪默认分支（通常是 main 或 master）的最新提交
         targetRevision: HEAD

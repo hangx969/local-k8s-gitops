@@ -16,7 +16,7 @@ metadata:
 spec:
   description: An argoCD project for local k8s gitops.
   sourceRepos:
-    - "https://github.com/hangx969/local-k8s-gitops.git"
+    - "https://gitee.com/hangxu969/local-k8s-gitops.git"
     - "https://charts.external-secrets.io"
     - "https://kyverno.github.io/kyverno/"
     - "https://kyverno.github.io/policy-reporter"

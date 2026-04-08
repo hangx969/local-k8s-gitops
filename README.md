@@ -192,7 +192,7 @@ ArgoCD auto-discovers repositories by detecting Secrets with the label `argocd.a
 kubectl create secret generic repo-my-private-repo \
   -n argocd \
   --from-literal=type=git \
-  --from-literal=url=https://github.com/<owner>/<repo>.git \
+  --from-literal=url=https://gitee.com/<owner>/<repo>.git \
   --from-literal=username=<github-username> \
   --from-literal=password=<github-pat> \
   --dry-run=client -o yaml \
@@ -204,9 +204,9 @@ kubectl create secret generic repo-my-private-repo \
 
 Replace the placeholders:
 - `repo-my-private-repo` — any unique Secret name
-- `<owner>/<repo>` — your GitHub repository path
-- `<github-username>` — your GitHub username
-- `<github-pat>` — a GitHub Personal Access Token with `repo` scope
+- `<owner>/<repo>` — your Gitee repository path
+- `<github-username>` — your Gitee username
+- `<github-pat>` — a Gitee Personal Access Token
 
 ### Verify
 
@@ -217,6 +217,8 @@ kubectl -n argocd get secret repo-my-private-repo \
 ```
 
 > **Note:** For SSH-based authentication, use `--from-literal=type=git` and `--from-literal=sshPrivateKey="$(cat ~/.ssh/id_rsa)"` instead of username/password. See the [ArgoCD Declarative Setup docs](https://argo-cd.readthedocs.io/en/stable/operator-manual/declarative-setup/#repositories) for all options.
+>
+> The repository is hosted on Gitee (`https://gitee.com/hangxu969/local-k8s-gitops.git`) as a mirror for better network access in China.
 
 ## GitOps Workflow
 
