@@ -7,4 +7,4 @@ appVersion: "3.7.3"
 dependencies:
   - name: policy-reporter
     version: "3.7.3"
-    repository: https://kyverno.github.io/policy-reporter
+    repository: ""

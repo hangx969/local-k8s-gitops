@@ -208,5 +208,6 @@ marimo/_lsp/
 __marimo__/
 
 # Helm dependency build artifacts (umbrella charts)
-**/charts/charts/
+**/charts/charts/*
+!**/charts/charts/*.tgz
 **/Chart.lock
