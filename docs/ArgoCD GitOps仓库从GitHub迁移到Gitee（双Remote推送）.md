@@ -88,7 +88,8 @@ origin  git@github.com:hangx969/local-k8s-gitops.git (push)
 
 ```bash
 # 推荐：一次推送到 GitHub + Gitee（ArgoCD 能立即同步）
-git push all main
+# 注意：push all 不会更新 origin/main 跟踪引用，需要 fetch origin 同步
+git push all main && git fetch origin
 
 # 仅推送到 GitHub
 git push origin main
