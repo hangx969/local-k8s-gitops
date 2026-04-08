@@ -17,6 +17,7 @@ spec:
   description: An argoCD project for local k8s gitops.
   sourceRepos:
     - "https://gitee.com/hangxu969/local-k8s-gitops.git"
+    - "https://charts.external-secrets.io"
   destinations:
     - namespace: "*"
       server: https://kubernetes.default.svc

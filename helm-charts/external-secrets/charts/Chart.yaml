@@ -1,0 +1,10 @@
+apiVersion: v2
+name: external-secrets
+description: Umbrella chart for External Secrets Operator
+type: application
+version: 0.1.0
+appVersion: "2.2.0"
+dependencies:
+  - name: external-secrets
+    version: "2.2.0"
+    repository: https://charts.external-secrets.io
