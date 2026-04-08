@@ -1,0 +1,3 @@
+# Default values for policy-reporter umbrella chart
+# Values under the "policy-reporter" key are passed to the subchart
+policy-reporter: {}
