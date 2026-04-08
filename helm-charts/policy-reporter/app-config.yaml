@@ -1,6 +1,0 @@
-app:
-  syncWave: "-5"
-  revision: main
-  releaseName: policy-reporter
-  version: 3.7.3
-  namespace: policy-reporter

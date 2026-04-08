@@ -1,6 +1,0 @@
-app:
-  syncWave: "-20"
-  revision: main
-  releaseName: external-secrets
-  version: 2.2.0
-  namespace: external-secrets

@@ -1,6 +1,0 @@
-app:
-  syncWave: "-10"
-  revision: main
-  releaseName: kyverno
-  version: 3.7.1
-  namespace: kyverno
