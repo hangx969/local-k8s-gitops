@@ -1,4 +1,38 @@
-# Default values for external-secrets umbrella chart
+# Values for external-secrets umbrella chart
 # Values under the "external-secrets" key are passed to the subchart
 external-secrets:
   installCRDs: true
+
+  image:
+    repository: ghcr.io/external-secrets/external-secrets
+    pullPolicy: IfNotPresent
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  certController:
+    image:
+      repository: ghcr.io/external-secrets/external-secrets
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+  webhook:
+    image:
+      repository: ghcr.io/external-secrets/external-secrets
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi

@@ -86,11 +86,9 @@ spec:
         helm:
           # Helm Release 名称。如果不指定，默认使用 Application 名称
           releaseName: "{{ .app.releaseName }}"
-          # 值文件（Values Files）加载顺序
-          # 后面的文件会覆盖前面的配置
+          # 值文件（Values Files）
           valueFiles:
-            - "values.yaml"         # 1. 默认值文件（所有环境通用）
-            - "values.dev.yaml"   # 2. 环境特定值文件（如 dev.yaml, prod.yaml）
+            - "values.yaml"
           # 如果指定的 values 文件不存在，不报错
           ignoreMissingValueFiles: true
       # 定义应用部署到哪个集群的哪个命名空间
