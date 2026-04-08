@@ -114,6 +114,7 @@ spec:
           - ApplyOutOfSyncOnly=true # 仅应用不同步的资源：只更新有变化的资源，减少不必要的操作
           - Validate=true
           - PrunePropagationPolicy=foreground # 资源删除策略：前台删除（等待依赖资源先删除）
+          - ServerSideApply=true # 服务端应用：解决大型 CRD 注解超过 262144 字节限制的问题
         # 重试策略：同步失败时的重试配置
         retry:
           # 最大重试次数
