@@ -89,6 +89,7 @@ spec:
           # 值文件（Values Files）
           valueFiles:
             - "values.yaml"
+            - "values.dev.yaml"
           # 如果指定的 values 文件不存在，不报错
           ignoreMissingValueFiles: true
       # 定义应用部署到哪个集群的哪个命名空间
