@@ -28,6 +28,20 @@ controller:
   prometheus:
     enabled: false
 
+  initContainerEnv:
+    - name: JENKINS_UC
+      value: "https://mirrors.tuna.tsinghua.edu.cn/jenkins/updates/update-center.json"
+    - name: JENKINS_UC_DOWNLOAD
+      value: "https://mirrors.tuna.tsinghua.edu.cn/jenkins"
+    - name: JENKINS_PLUGIN_INFO
+      value: "https://mirrors.tuna.tsinghua.edu.cn/jenkins/updates/plugin-versions.json"
+
+  containerEnv:
+    - name: JENKINS_UC
+      value: "https://mirrors.tuna.tsinghua.edu.cn/jenkins/updates/update-center.json"
+    - name: JENKINS_UC_DOWNLOAD
+      value: "https://mirrors.tuna.tsinghua.edu.cn/jenkins"
+
   installPlugins: false
     # - kubernetes:4358.vcfd9c5a_0a_f51
     # - workflow-aggregator:608.v67378e9d3db_1
