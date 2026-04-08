@@ -3,24 +3,24 @@
     {{- if or (isset .ObjectMeta.Annotations `sidecar.istio.io/proxyCPU`) (isset .ObjectMeta.Annotations `sidecar.istio.io/proxyMemory`) }}
       requests:
         {{ if (isset .ObjectMeta.Annotations `sidecar.istio.io/proxyCPU`) -}}
-        cpu: "{{ index .ObjectMeta.Annotations `sidecar.istio.io/proxyCPU` }}"
+        cpu: {{ index .ObjectMeta.Annotations `sidecar.istio.io/proxyCPU` | quote }}
         {{ end }}
         {{ if (isset .ObjectMeta.Annotations `sidecar.istio.io/proxyMemory`) -}}
-        memory: "{{ index .ObjectMeta.Annotations `sidecar.istio.io/proxyMemory` }}"
+        memory: {{ index .ObjectMeta.Annotations `sidecar.istio.io/proxyMemory` | quote }}
         {{ end }}
     {{- end }}
     {{- if or (isset .ObjectMeta.Annotations `sidecar.istio.io/proxyCPULimit`) (isset .ObjectMeta.Annotations `sidecar.istio.io/proxyMemoryLimit`) }}
       limits:
         {{ if (isset .ObjectMeta.Annotations `sidecar.istio.io/proxyCPULimit`) -}}
-        cpu: "{{ index .ObjectMeta.Annotations `sidecar.istio.io/proxyCPULimit` }}"
+        cpu: {{ index .ObjectMeta.Annotations `sidecar.istio.io/proxyCPULimit` | quote }}
         {{ end }}
         {{ if (isset .ObjectMeta.Annotations `sidecar.istio.io/proxyMemoryLimit`) -}}
-        memory: "{{ index .ObjectMeta.Annotations `sidecar.istio.io/proxyMemoryLimit` }}"
+        memory: {{ index .ObjectMeta.Annotations `sidecar.istio.io/proxyMemoryLimit` | quote }}
         {{ end }}
     {{- end }}
   {{- else }}
     {{- if .Values.global.proxy.resources }}
-      {{ toYaml .Values.global.proxy.resources | indent 6 }}
+      {{ toYaml (omitNil .Values.global.proxy.resources) | indent 6 }}
     {{- end }}
   {{- end }}
 {{- end }}
@@ -119,13 +119,12 @@ spec:
     - "-o"
     - "{{ annotation .ObjectMeta `traffic.sidecar.istio.io/excludeOutboundPorts` .Values.global.proxy.excludeOutboundPorts }}"
     {{ end -}}
-    {{ if (isset .ObjectMeta.Annotations `traffic.sidecar.istio.io/kubevirtInterfaces`) -}}
-    - "-k"
-    - "{{ index .ObjectMeta.Annotations `traffic.sidecar.istio.io/kubevirtInterfaces` }}"
-    {{ end -}}
     {{ if (isset .ObjectMeta.Annotations `istio.io/reroute-virtual-interfaces`) -}}
     - "-k"
     - "{{ index .ObjectMeta.Annotations `istio.io/reroute-virtual-interfaces` }}"
+    {{ else if (isset .ObjectMeta.Annotations `traffic.sidecar.istio.io/kubevirtInterfaces`) -}}
+    - "-k"
+    - "{{ index .ObjectMeta.Annotations `traffic.sidecar.istio.io/kubevirtInterfaces` }}"
     {{ end -}}
      {{ if (isset .ObjectMeta.Annotations `traffic.sidecar.istio.io/excludeInterfaces`) -}}
     - "-c"
@@ -175,6 +174,10 @@ spec:
       runAsGroup: {{ if $tproxy }} 1337 {{ else }} {{ .ProxyGID | default "1337" }} {{ end }}
       runAsUser: {{ if $tproxy }} 1337 {{ else }} {{ .ProxyUID | default "1337" }} {{ end }}
       runAsNonRoot: true
+    {{- end }}
+    {{- if .Values.global.proxy.seccompProfile }}
+      seccompProfile:
+    {{- toYaml .Values.global.proxy.seccompProfile | nindent 8 }}
     {{- end }}
   {{ end -}}
   {{ end -}}
@@ -268,6 +271,7 @@ spec:
       valueFrom:
         resourceFieldRef:
           resource: limits.cpu
+          divisor: "1"
     - name: PROXY_CONFIG
       value: |
              {{ protoToJSON .ProxyConfig }}
@@ -290,10 +294,12 @@ spec:
       valueFrom:
         resourceFieldRef:
           resource: limits.memory
+          divisor: "1"
     - name: GOMAXPROCS
       valueFrom:
         resourceFieldRef:
           resource: limits.cpu
+          divisor: "1"
     {{- if .CompliancePolicy }}
     - name: COMPLIANCE_POLICY
       value: "{{ .CompliancePolicy }}"
@@ -403,6 +409,10 @@ spec:
       runAsGroup: {{ .ProxyGID | default "1337" }}
       {{- end }}
       {{- end }}
+    {{- if .Values.global.proxy.seccompProfile }}
+      seccompProfile:
+    {{- toYaml .Values.global.proxy.seccompProfile | nindent 8 }}
+    {{- end }}
     resources:
   {{ template "resources" . }}
     volumeMounts:
@@ -509,7 +519,7 @@ spec:
   {{- end }}
   - name: istio-ca-crl
     configMap:
-      name: istio-ca-crl
+      name: {{ .Values.pilot.crlConfigMapName | default "istio-ca-crl" }}
       optional: true
   {{- if .Values.global.mountMtlsCerts }}
   # Use the key and cert mounted to /etc/certs/ for the in-cluster mTLS communications.
