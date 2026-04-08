@@ -143,16 +143,23 @@ controller:
 
   # useful for i.e., http_proxy
   # -- Environment variables for Init Container
-  initContainerEnv: []
-  # initContainerEnv:
-  #   - name: http_proxy
-  #     value: "http://192.168.64.1:3128"
+  initContainerEnv:
+    - name: JENKINS_UC
+      value: "https://mirrors.tuna.tsinghua.edu.cn/jenkins/updates/update-center.json"
+    - name: JENKINS_UC_DOWNLOAD
+      value: "https://mirrors.tuna.tsinghua.edu.cn/jenkins"
+    - name: JENKINS_PLUGIN_INFO
+      value: "https://mirrors.tuna.tsinghua.edu.cn/jenkins/updates/plugin-versions.json"
 
   # -- Environment variable sources for Jenkins Container
   containerEnvFrom: []
 
   # -- Environment variables for Jenkins Container
-  containerEnv: []
+  containerEnv:
+    - name: JENKINS_UC
+      value: "https://mirrors.tuna.tsinghua.edu.cn/jenkins/updates/update-center.json"
+    - name: JENKINS_UC_DOWNLOAD
+      value: "https://mirrors.tuna.tsinghua.edu.cn/jenkins"
   #   - name: http_proxy
   #     value: "http://192.168.64.1:3128"
 
