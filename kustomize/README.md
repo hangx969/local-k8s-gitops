@@ -5,7 +5,7 @@ Kustomize-based Kubernetes application configs, auto-deployed by ArgoCD Applicat
 ## Structure
 
 ```
-apps/
+kustomize/
 ├── base/                    # Base configs (environment-agnostic)
 │   ├── bookinfo/            # Istio sample microservices app
 │   ├── istio-addons/        # Grafana, Jaeger, Kiali, Prometheus
@@ -20,18 +20,18 @@ apps/
 
 - **Base** defines complete, reusable resource manifests (Deployments, Services, Gateways, etc.)
 - **Overlay** references a base and applies customizations (image replacements, patches, etc.)
-- ArgoCD scans `apps/overlays/*` and generates one Application per subdirectory
+- ArgoCD scans `kustomize/overlays/*` and generates one Application per subdirectory
 
 ## Adding a New App
 
 ```bash
 # 1. Create base resources
-mkdir -p apps/base/my-app
+mkdir -p kustomize/base/my-app
 # Add deployment.yaml, service.yaml, kustomization.yaml, etc.
 
 # 2. Create overlay
-mkdir -p apps/overlays/my-app
-cat > apps/overlays/my-app/kustomization.yaml <<EOF
+mkdir -p kustomize/overlays/my-app
+cat > kustomize/overlays/my-app/kustomization.yaml <<EOF
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:

@@ -16,14 +16,14 @@ spec:
     # --------------------------------------------------
     # Git 目录生成器
     # --------------------------------------------------
-    # 扫描 apps/overlays 下的所有子目录
+    # 扫描 kustomize/overlays 下的所有子目录
     # 每个子目录代表一个要部署的应用
     - git:
         repoURL: https://gitee.com/hangxu969/local-k8s-gitops.git
         revision: main
         directories:
-          # 匹配 apps/overlays 下的所有子目录
-          - path: apps/overlays/*
+          # 匹配 kustomize/overlays 下的所有子目录
+          - path: kustomize/overlays/*
 
   # ============================================================
   # 应用模板
@@ -31,7 +31,7 @@ spec:
   template:
     metadata:
       # 应用名称：从路径中提取应用名
-      # 例如：apps/overlays/kiali -> kiali
+      # 例如：kustomize/overlays/kiali -> kiali
       name: "{{ index .path.segments 2 }}"
 
       labels:
@@ -51,7 +51,7 @@ spec:
         repoURL: https://gitee.com/hangxu969/local-k8s-gitops.git
         targetRevision: HEAD
         # Kustomize 应用的路径
-        # 例如：apps/overlays/kiali
+        # 例如：kustomize/overlays/kiali
         path: "{{ .path.path }}"
 
         # ============================================

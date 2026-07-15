@@ -23,7 +23,7 @@ local-k8s-gitops/
 │   ├── jenkins/                   # CI/CD platform
 │   └── nfs-provisioner/           # NFS dynamic storage provisioner
 │
-├── apps/                          # Kustomize applications
+├── kustomize/                     # Kustomize applications
 │   ├── base/                      # Base configs (environment-agnostic)
 │   │   ├── bookinfo/              # Istio sample app
 │   │   ├── istio-addons/          # Grafana, Jaeger, Kiali, Prometheus
@@ -166,11 +166,11 @@ EOF
 ### Add a Kustomize App
 
 ```bash
-mkdir -p apps/base/my-app apps/overlays/my-app
+mkdir -p kustomize/base/my-app kustomize/overlays/my-app
 
-# Create base resources and kustomization.yaml under apps/base/my-app/
+# Create base resources and kustomization.yaml under kustomize/base/my-app/
 
-cat > apps/overlays/my-app/kustomization.yaml <<EOF
+cat > kustomize/overlays/my-app/kustomization.yaml <<EOF
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:

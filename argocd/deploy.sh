@@ -150,7 +150,7 @@ wait_for_resource "appproject" "appprj-default" "${ARGOCD_NS}" 30
 # ApplicationSets use generators to auto-discover and create Applications:
 #   - appset-helm: Scans helm-charts/*/app-config.yaml and generates
 #                  one Application per Helm chart
-#   - appset-kustomize: Scans apps/overlays/* directories and generates
+#   - appset-kustomize: Scans kustomize/overlays/* directories and generates
 #                       one Application per Kustomize overlay
 #
 # Deployment order is controlled by syncWave:
